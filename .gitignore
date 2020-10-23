@@ -1,0 +1,11 @@
+remove/*
+*~
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.out
+*.o
+*.cmake
+.vscode/*
+*/build/*

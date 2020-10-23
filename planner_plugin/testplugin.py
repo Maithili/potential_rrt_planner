@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+from openravepy import *
+RaveInitialize()
+RaveLoadPlugin('build/planner_plugin')
+try:
+    env=Environment()
+    env.Load('../scenes/myscene.env.xml')
+    Planner = RaveCreateModule(env,'PlannerModule')
+    print(Planner)
+    print Planner.SendCommand('PlannerCommand testing')
+    print('Hohoho!')
+finally:
+    RaveDestroy()
