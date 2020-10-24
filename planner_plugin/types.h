@@ -7,8 +7,24 @@
 static constexpr int config_dim = 2;
 static constexpr int space_dim = 2;
 
-static constexpr float node_distance_tolerance = 0.01;
-static constexpr float step_size = 0.1;
+static constexpr float step_size = 0.2;
+static constexpr float node_distance_tolerance = step_size * 2;
+
+typedef struct Color
+{   
+    float r = 0.0;
+    float g = 0.0;
+    float b = 0.0;
+    float* operator()()
+    {
+        float code[]{r,g,b};
+        return code;
+    }
+};
+Color Black{0.0, 0.0, 0.0};
+Color Red  {1.0, 0.0, 0.0};
+Color Green{0.0, 1.0, 0.0};
+Color Blue {0.0, 0.0, 1.0};
 
 using Config = Eigen::Matrix<double,config_dim,1>;
 using Location = Eigen::Matrix<double,space_dim,1>;
@@ -19,7 +35,7 @@ class Node
 {
 
 public:
-    Node(){}
+    // Node(){}
 
     //Use this for the tree root
     Node(const Config& config): 
@@ -64,24 +80,14 @@ private:
     std::vector<Node*>  children_;
 };
 
-enum class Color
+void drawConfiguration(OpenRAVE::EnvironmentBasePtr env, Location point_eigen, Color color = Color(), float size = 5)
 {
-    Black = 0,
-    Red = 1,
-    Blue = 2,
-    Green = 3,
-};
-
-void drawConfiguration(OpenRAVE::EnvironmentBasePtr env, Location point_eigen, Color color = Color::Black)
-{
-    float color_arr[] {0.0,0.0,0.0};
-
     float point3D[3];
     point3D[0] = point_eigen(0);
     point3D[1] = point_eigen(1);
     point3D[2] = space_dim < 3 ? 0.1 : point_eigen(2);
 
-    viz_objects.push_back(env->plot3(point3D, 1, 4, 9 ,color_arr));
+    viz_objects.push_back(env->plot3(point3D, 1, 4, size ,color()));
 }
 
 #endif

@@ -100,9 +100,15 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
     drawConfiguration(env_, world_.getGoal());
 
     planner_.plan(max_iterations);
-    return true;
-    path_ = planner_.getPath();
+    // path_ = planner_.getPath();
     
+    for (auto& node: path_)
+    {
+        for (auto& x : node)
+            sout<<x<<", ";
+        sout<<"\n";
+    }
+
     return true;
 }
 

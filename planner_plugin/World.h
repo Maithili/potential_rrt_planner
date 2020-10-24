@@ -61,7 +61,15 @@ protected:
 
 class EuclideanWorld : public World
 {
+public:
+    EuclideanWorld(OpenRAVE::EnvironmentBasePtr& env): World(env)
+    {};
 
+    Config stepTowards(Config from, Config towards)
+    {
+        Config goal_gradient = (towards - from).normalized();
+        return (from + goal_gradient * step_size);
+    }
 };
 
 class EuclideanWorldWithPotential : public World
@@ -85,16 +93,28 @@ private:
     Config getObstacleGradient(Config q)
     {
         Config gradient;
-        for (auto& obstacle : obstacle_potentials_)
+        for (auto& obstacle : obstacle_geometries_)
         {
-            gradient += obstacle.getPotentialGradientAt(q) * obstacle.getPotentialGradientDirectionAt(q);
+            gradient += obstacle.getPotentialGradientAt(q);
         }
         return gradient;
     }
 
-    void populatePotentials(){};
+    void populatePotentials()
+    {
+        std::vector<OpenRAVE::KinBodyPtr> bodies;
+        env_->GetBodies(bodies);
+        OpenRAVE::KinBodyPtr obstacles;
+        std::vector<OpenRAVE::KinBody::LinkPtr> links;
+        obstacles = env_->GetKinBody("obstacles");
+        links = obstacles->GetLinks();
+        for (OpenRAVE::KinBody::LinkPtr l : links)
+        {
+            obstacle_geometries_.push_back(Potential(l->GetGeometry(0)));
+        }
+    }
 
-    std::vector<Potential> obstacle_potentials_;
+    std::vector<Potential> obstacle_geometries_;
 };
 
 class ConfigWorld : public World

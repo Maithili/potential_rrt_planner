@@ -7,7 +7,7 @@
 class ConfigTree
 {
 public:
-    ConfigTree(Node){}
+    ConfigTree(){}
 
     void setRoot(Node root) 
     {
@@ -20,10 +20,11 @@ public:
         return (tree_.front());
     }
 
-    Node& addChildNode(Node& parent, Config child_config)
+    Node& addChildNode(Node* parent, Config child_config)
     {
-        tree_.push_back(Node(child_config, &parent));
-        parent.addChild(&tree_.back());
+        std::cout<<&(tree_.front())<<" : "<<tree_.front().getParent()<<std::endl;
+        tree_.push_back(Node(child_config, parent));
+        parent->addChild(&tree_.back());
         return tree_.back();
     }
 
@@ -42,6 +43,16 @@ public:
             }
         }
         return closest_node;
+    }
+
+    void printAll()
+    {
+        for (auto& node : tree_)
+        {
+            std::cout<<&node<<" : "<<node.getParent()<<std::endl;
+            if(&node == node.getParent())
+                std::cout<<"Noooooooooooooooooooooooooooooooooooo"<<std::endl;
+        }
     }
 
 private:
