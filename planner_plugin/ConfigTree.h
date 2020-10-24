@@ -2,41 +2,50 @@
 #define CONFIG_TREE_H
 
 #include <limits>
+#include "types.h"
 
-template <typename NodeType>
 class ConfigTree
 {
 public:
-    ConfigTree(NodeType){}
+    ConfigTree(Node){}
 
-    void setRoot(std::shared_ptr<NodeType> root) {root_ = root;}
+    void setRoot(Node root) 
+    {
+        tree_.clear();
+        tree_.push_back(root);
+    }
 
-    std::shared_ptr<NodeType> getClosestNode(std::function<float(NodeType)> distance_to_target)
+    Node& getRoot()
+    {
+        return (tree_.front());
+    }
+
+    Node& addChildNode(Node& parent, Config child_config)
+    {
+        tree_.push_back(Node(child_config, &parent));
+        parent.addChild(&tree_.back());
+        return tree_.back();
+    }
+
+    Node& getClosestNode(std::function<float(Node)> distance_to_target)
     {
         float min_dist = std::numeric_limits<float>::max();
-        std::vector<std::shared_ptr<NodeType> > nodes_to_check;
-        std::shared_ptr<NodeType> closest_node =  root_;
-        nodes_to_check.push_back(closest_node);
+        Node& closest_node =  tree_.front();
 
-        while(nodes_to_check.size())
+        for (auto& node : tree_)
         {
-            float d = distance_to_target(*nodes_to_check.back());
+            float d = distance_to_target(node);
             if(d < min_dist)
             {
-                closest_node = nodes_to_check.back();
+                closest_node = node;
                 min_dist = d;
             }
-            for (auto c : nodes_to_check.back()->getChildren())
-            {
-                nodes_to_check.push_back(c);
-            }
-            nodes_to_check.pop_back();
         }
         return closest_node;
     }
 
 private:
-    std::shared_ptr<NodeType> root_;
+    std::vector<Node> tree_;
 };
 
 #endif

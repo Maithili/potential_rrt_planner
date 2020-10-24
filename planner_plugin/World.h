@@ -18,8 +18,18 @@ public:
     
     Config getStart() const {return start_location_;}
     Config getGoal() const {return goal_location_;}
+    Config getLowerLimits() const {return lower_limits_;}
+    Config getUpperLimits() const {return upper_limits_;}
 
-    bool isInCollision(Config config);
+    bool isInCollision(Config config)
+    {
+        OpenRAVE::RobotBasePtr robot = env_->GetRobot("PR2");
+        std::vector<double> config_vector(config.data(), config.data()+config.rows());
+        config_vector.push_back(0.0);
+        robot->SetActiveDOFValues(config_vector);
+        return (   env_->CheckCollision(robot)
+                || robot->CheckSelfCollision());
+    };
 
     Config getRandomConfig()
     {
@@ -40,9 +50,9 @@ public:
     {
         return ((config - goal_location_).norm() < node_distance_tolerance);
     }
-
-protected:
+    
     OpenRAVE::EnvironmentBasePtr env_;
+protected:
     Config start_location_;
     Config goal_location_;
     Config lower_limits_;
@@ -67,7 +77,8 @@ public:
         Config goal_gradient = (towards - from).normalized();
         goal_gradient *= Potential::calculateGoalPotentialGradient();
         Config obstacle_gradient = getObstacleGradient(from);
-        return (from + goal_gradient + obstacle_gradient);
+        Config step = (goal_gradient + obstacle_gradient).normalized() * step_size;
+        return (from + step);
     }
 
 private:

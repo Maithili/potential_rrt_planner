@@ -29,7 +29,7 @@ public:
 
     static float calculateGoalPotentialGradient()
     {
-        return -goal_potential_gradient_;
+        return goal_potential_gradient_;
     }
 
     virtual float getPotentialGradientAt(Location x) const = 0;

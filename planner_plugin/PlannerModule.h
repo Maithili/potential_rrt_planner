@@ -51,10 +51,6 @@ public:
 
     void parseInput(std::istream& sinput);
 
-    void visualizePath();
-
-    void moveRobot();
-
 private:
     EnvironmentBasePtr env_;
     EuclideanWorldWithPotential world_;
@@ -72,23 +68,40 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
     parseInput(sinput);
     env_ = GetEnv();
     std::vector<double> lower_limit;
+    lower_limit.push_back(-5.0);
+    lower_limit.push_back(-5.0);
     std::vector<double> upper_limit;
+    upper_limit.push_back(5.0);
+    upper_limit.push_back(5.0);
     env_->GetRobot("PR2")->GetActiveDOFValues(start_);
-    env_->GetRobot("PR2")->GetActiveDOFLimits(lower_limit, upper_limit); 
+    // env_->GetRobot("PR2")->GetActiveDOFLimits(lower_limit, upper_limit); 
+
+    // for (int i=0; i<config_dim; ++i)
+    // {
+    //     lower_limit[i] = min_config_for_search[i] > lower_limit[i] ?
+    //                      min_config_for_search[i] : lower_limit[i];
+    //     upper_limit[i] = max_config_for_search[i] < upper_limit[i] ?
+    //                      max_config_for_search[i] : upper_limit[i];
+    // }
 
     world_.setStart(start_.data());
     world_.setGoal(goal_.data());
     world_.setLowerLimits(lower_limit.data());
     world_.setUpperLimits(upper_limit.data());
 
-    std::cout<<"Calling plan()..."<<std::endl;
+    std::cout<<"-----------Planning Problem-------------"<<std::endl;
+    std::cout<<"Start configuration : "<<world_.getStart().transpose()<<std::endl;
+    std::cout<<"Goal configuration : "<<world_.getGoal().transpose()<<std::endl;
+    std::cout<<"Lower limit configuration : "<<world_.getLowerLimits().transpose()<<std::endl;
+    std::cout<<"Upper limit configuration : "<<world_.getUpperLimits().transpose()<<std::endl;
+    std::cout<<"----------------------------------------"<<std::endl;
+
+    drawConfiguration(env_, world_.getStart());
+    drawConfiguration(env_, world_.getGoal());
 
     planner_.plan(max_iterations);
     return true;
     path_ = planner_.getPath();
-
-    // visualizePath("red", sout);
-    // moveRobot();
     
     return true;
 }

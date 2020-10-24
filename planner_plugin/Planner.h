@@ -36,12 +36,8 @@ public:
     };
 
     RRTPlanner(World* world_ptr_in): 
-        world_ptr_{world_ptr_in}, reached_goal_{false}, search_tree_{Node()},
-        latest_node_{}
-    {
-        latest_node_ = std::make_shared<Node>(world_ptr_->getStart());
-        search_tree_.setRoot(latest_node_);
-    }
+        world_ptr_{world_ptr_in}, reached_goal_{false}, search_tree_{Node()}, goal_node_{nullptr}
+    {}
     
     void plan(int max_iterations) override;
     
@@ -56,20 +52,19 @@ private:
     ConnectResult connectTo(Config connect_goal);
     bool reachToGoal();
 
-    World*                      world_ptr_;
-    ConfigTree<Node>            search_tree_;
-    std::shared_ptr<Node>       latest_node_;
-    bool                        reached_goal_;
+    World* world_ptr_;
+    ConfigTree search_tree_;
+    Node* goal_node_;
+    bool reached_goal_;
 };
 
 void RRTPlanner::plan(int max_iterations)
 {
+    search_tree_.setRoot(Node(world_ptr_->getStart()));
     for (int iteration=0; iteration<max_iterations; ++iteration)
     {
-        std::cout<<"Starting iteration number : "<<iteration<<std::endl;
         Config connect_goal = reachToGoal()? world_ptr_->getGoal() 
                                 : world_ptr_->getRandomConfig();
-        std::cout<<"Connecting to : "<<connect_goal.transpose()<<std::endl;
         ConnectResult result = connectTo(connect_goal);
         if (result == ConnectResult::ReachedGoal)
         {
@@ -81,33 +76,40 @@ void RRTPlanner::plan(int max_iterations)
 
 RRTPlanner::ConnectResult RRTPlanner::connectTo(Config connect_goal)
 {
-    std::cout<<"Calling ConnectTo()..."<<std::endl;
     std::function<float(Node)> distance_to_goal = [&connect_goal](Node node) 
         { return (node.getConfiguration() - connect_goal).norm(); };
-    latest_node_ = search_tree_.getClosestNode(distance_to_goal);
-    std::cout<<"Found closest node : "<<latest_node_->getConfiguration().transpose()<<std::endl;
+    Node closest_node = search_tree_.getClosestNode(distance_to_goal);
     
+    int steps_allowed = 100;
     ConnectResult result(ConnectResult::Running);
-    while (result == ConnectResult::Running)
+    while (result == ConnectResult::Running && steps_allowed > 0)
     {
-        Config new_config = world_ptr_->stepTowards(latest_node_->getConfiguration(), connect_goal);
+        Config new_config = world_ptr_->stepTowards(closest_node.getConfiguration(), connect_goal);
+        if(world_ptr_->isInCollision(new_config))
+        {
+            result = ConnectResult::Collided;
+            return result;
+        }
+        drawConfiguration(world_ptr_->env_, new_config);
 
+        if((new_config - closest_node.getConfiguration()).norm() < node_distance_tolerance)
+        {
+            result = ConnectResult::Stuck;
+        }
+
+        closest_node = search_tree_.addChildNode(closest_node, new_config);
         if(world_ptr_->isGoal(new_config))
         {
             result = ConnectResult::ReachedGoal;
+            goal_node_ = &closest_node;
         }
         else if((new_config - connect_goal).norm() < node_distance_tolerance)
         {
             result = ConnectResult::ReachedConnectGoal;
         }
-        else if((new_config - latest_node_->getConfiguration()).norm() < node_distance_tolerance)
-        {
-            result = ConnectResult::Stuck;
-        }
-        latest_node_ = latest_node_->addChild(new_config);
+        --steps_allowed;
     }
     
-    std::cout<<"Loook at meeee!!!!!!!!!!! "<<std::endl;
     return result;
 }
 
@@ -120,10 +122,11 @@ std::vector<std::vector<double> > RRTPlanner::getPath() const
     }
 
     std::vector<std::vector<double> > path;
-    std::shared_ptr<Node> current_node = latest_node_;
+    Node* current_node = goal_node_;
     while (current_node->getParent())
     {
         Config config = current_node->getConfiguration();
+        drawConfiguration(world_ptr_->env_, config);
         std::vector<double> config_stl(config.data(), config.data()+config.rows());
         path.push_back(config_stl);
         current_node = current_node->getParent();
