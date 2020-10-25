@@ -4,6 +4,7 @@ import time
 import openravepy
 import sys
 import scipy
+import random
 
 if not __openravepy_build_doc__:
     from openravepy import *
@@ -45,14 +46,24 @@ if __name__ == "__main__":
     try:
         with env:
             mod = RaveCreateModule(env,'PlannerModule')
-            seed = 1
+            seed = random.random()*10000
             goalbias = 50 # in percentage
+
+            raw_input("Press enter to start...")
             start = time.clock()
             algo = 1
-            raw_input("Press enter to start...")
+            robot.SetActiveDOFValues([-4, -4, 0])
             print mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %f , %f , %f ; goalbias %f ; done" %(algo,seed,goalconfig[0],goalconfig[1],goalconfig[2],float(goalbias)/100))
             end = time.clock()
-            print 'Total time for plugin : ', end - start
+            print 'Total time for RRT with potential : ', end - start
+
+            raw_input("Press enter to start...")
+            start = time.clock()
+            algo = 2
+            robot.SetActiveDOFValues([-4, -4, 0])
+            print mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %f , %f , %f ; goalbias %f ; done" %(algo,seed,goalconfig[0],goalconfig[1],goalconfig[2],float(goalbias)/100))
+            end = time.clock()
+            print 'Total time for RRT : ', end - start
         waitrobot(robot)
     except Exception as e:
         print(e)

@@ -26,7 +26,7 @@ Color Black{0.0, 0.0, 0.0};
 Color Red  {0.8, 0.1, 0.1};
 Color Green{0.5, 0.8, 0.2};
 Color Blue {0.0, 0.0, 0.7};
-Color Pale {0.5, 0.5, 0.6};
+Color Pale {0.6, 0.5, 0.6};
 
 using Config = Eigen::Matrix<double,config_dim,1>;
 using Location = Eigen::Matrix<double,space_dim,1>;

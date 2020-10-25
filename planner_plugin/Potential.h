@@ -26,11 +26,11 @@ protected:
     static const float goal_potential_gradient_;
 };
 
-const float Potential::max_dist_                = 1.5F;
-const float Potential::min_dist_                = 0.1F;
+const float Potential::max_dist_                = 2.5F;
+const float Potential::min_dist_                = 0.4F;
 const float Potential::max_potential_gradient_  = 10.0F;
 const float Potential::potential_power_         = 2.0F;
-const float Potential::goal_potential_gradient_ = 1.0F;
+const float Potential::goal_potential_gradient_ = 10.0F;
 
 namespace
 {
@@ -86,10 +86,10 @@ Location Potential::getPotentialGradientAt(Location x)
         {
             geom_grad = getPotentialGradientForCircle(x, geomtry->GetCylinderRadius(), geomtry->GetTransform().trans);
         }
-        else if( (geomtry->GetType() == OpenRAVE::GT_Box))
-        {
-            geom_grad = getPotentialGradientForBox(x, geomtry->GetBoxExtents(), geomtry->GetTransform().trans, geomtry->GetTransform().rot.x);
-        }
+        // else if( (geomtry->GetType() == OpenRAVE::GT_Box))
+        // {
+        //     geom_grad = getPotentialGradientForBox(x, geomtry->GetBoxExtents(), geomtry->GetTransform().trans, geomtry->GetTransform().rot.x);
+        // }
         if (geom_grad.norm() > gradient.norm())
             gradient = geom_grad;
     }

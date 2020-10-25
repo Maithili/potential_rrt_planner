@@ -60,7 +60,7 @@ void RRTPlanner::plan(int max_iterations)
     search_tree_.setRoot(world_ptr_->getStart());
     for (int iteration=0; iteration<max_iterations; ++iteration)
     {
-        search_tree_.draw(world_ptr_->env_);
+        // search_tree_.draw(world_ptr_->env_);
         Config connect_goal = reachToGoal()? world_ptr_->getGoal() 
                                 : world_ptr_->getRandomConfig();
         ConnectResult result = connectTo(connect_goal);
@@ -76,6 +76,7 @@ void RRTPlanner::plan(int max_iterations)
 
 RRTPlanner::ConnectResult RRTPlanner::connectTo(Config connect_goal)
 {
+    // viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, connect_goal, Pale, 8));
     std::function<float(Node)> distance_to_goal = [&connect_goal](Node node) 
         { return (node.getConfiguration() - connect_goal).norm(); };
     std::shared_ptr<Node> closest_node = search_tree_.getClosestNode(distance_to_goal);
@@ -87,6 +88,7 @@ RRTPlanner::ConnectResult RRTPlanner::connectTo(Config connect_goal)
         Config new_config = world_ptr_->stepTowards(closest_node->getConfiguration(), connect_goal);
         if(world_ptr_->isInCollision(new_config))
         {
+            viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, new_config, Red, 3));
             result = ConnectResult::Collided;
             return result;
         }
@@ -97,6 +99,10 @@ RRTPlanner::ConnectResult RRTPlanner::connectTo(Config connect_goal)
         }
 
         closest_node = search_tree_.addChildNode(closest_node, new_config);
+
+        viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, closest_node->getConfiguration(), Blue));
+        viz_objects_permanent.push_back(drawEdge(world_ptr_->env_, closest_node->getConfiguration(), closest_node->getParent()->getConfiguration()));
+
         if(world_ptr_->isGoal(new_config))
         {
             result = ConnectResult::ReachedGoal;
