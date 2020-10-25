@@ -10,7 +10,7 @@
 class Planner
 {
 public:
-    Planner(): goal_bias_{0.5}, step_length_{1.0}
+    Planner(): goal_bias_{0.3}, step_length_{1.0}
     {}
 
     virtual void plan(int max_iterations) = 0;
@@ -43,23 +43,18 @@ public:
     
     std::vector<std::vector<double> > getPath() const override;
 
-    void setParams(float goal_bias = 0.5, float step_length = 1)
-    {
-        goal_bias_ = goal_bias; step_length_ = step_length;
-    }
-
 private:
     ConnectResult connectTo(Config connect_goal);
     bool reachToGoal();
 
     World* world_ptr_;
     ConfigTree search_tree_;
-    Node* goal_node_;
+    std::shared_ptr<Node> goal_node_;
 };
 
 void RRTPlanner::plan(int max_iterations)
 {
-    search_tree_.setRoot(Node(world_ptr_->getStart()));
+    search_tree_.setRoot(world_ptr_->getStart());
     for (int iteration=0; iteration<max_iterations; ++iteration)
     {
         search_tree_.draw(world_ptr_->env_);
@@ -77,7 +72,7 @@ RRTPlanner::ConnectResult RRTPlanner::connectTo(Config connect_goal)
 {
     std::function<float(Node)> distance_to_goal = [&connect_goal](Node node) 
         { return (node.getConfiguration() - connect_goal).norm(); };
-    Node* closest_node = &(search_tree_.getClosestNode(distance_to_goal));
+    std::shared_ptr<Node> closest_node = search_tree_.getClosestNode(distance_to_goal);
     
     int steps_allowed = 100;
     ConnectResult result(ConnectResult::Running);
@@ -95,7 +90,7 @@ RRTPlanner::ConnectResult RRTPlanner::connectTo(Config connect_goal)
             result = ConnectResult::Stuck;
         }
 
-        closest_node = &(search_tree_.addChildNode(closest_node, new_config));
+        closest_node = search_tree_.addChildNode(closest_node, new_config);
         if(world_ptr_->isGoal(new_config))
         {
             result = ConnectResult::ReachedGoal;
@@ -115,7 +110,7 @@ RRTPlanner::ConnectResult RRTPlanner::connectTo(Config connect_goal)
 std::vector<std::vector<double> > RRTPlanner::getPath() const
 {
     std::vector<std::vector<double> > path;
-    Node* current_node = goal_node_;
+    std::shared_ptr<Node> current_node = goal_node_;
     std::cout<<"Getting path : "<<current_node->getConfiguration()<<std::endl;
     while (current_node != nullptr)
     {

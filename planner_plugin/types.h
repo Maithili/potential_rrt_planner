@@ -1,13 +1,13 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#include<iostream>
+#include <iostream>
 #include <openrave/plugin.h>
 
 static constexpr int config_dim = 2;
 static constexpr int space_dim = 2;
 
-static constexpr float step_size = 0.2;
+static constexpr float step_size = 0.1;
 static constexpr float node_distance_tolerance = step_size * 2;
 
 typedef struct Color
@@ -42,7 +42,7 @@ public:
         parent_{nullptr}, value_{config}, distance_{0.0F}
     {}
     
-    Node(const Config& config, Node* parent):
+    Node(std::shared_ptr<Node> parent, const Config& config):
         parent_{parent}, value_{config}, 
         distance_{parent->distance_ + (parent->value_ - this->value_).norm()}
     {}
@@ -54,17 +54,17 @@ public:
         std::cout<<"Number of children : "<<children_.size()<<std::endl;
     }
 
-    void addChild(Node* child)
+    void addChild(std::shared_ptr<Node>& child)
     {
         children_.push_back(child);
     }
 
-    std::vector<Node*> getChildren()
+    std::vector<std::shared_ptr<Node> > getChildren()
     {
         return children_;
     }
 
-    Node* getParent()
+    std::shared_ptr<Node> getParent()
     {
         return parent_;
     }
@@ -76,8 +76,8 @@ private:
 
     float               distance_;
     Config              value_;
-    Node*               parent_;
-    std::vector<Node*>  children_;
+    std::shared_ptr<Node>               parent_;
+    std::vector<std::shared_ptr<Node> >  children_;
 };
 
 // void drawConfiguration(OpenRAVE::EnvironmentBasePtr env, Location point_eigen, Color color = Color(), float size = 5)
@@ -97,7 +97,7 @@ OpenRAVE::GraphHandlePtr drawConfiguration(OpenRAVE::EnvironmentBasePtr env, Loc
     point3D[1] = point_eigen(1);
     point3D[2] = space_dim < 3 ? 0.1 : point_eigen(2);
 
-    return (env->plot3(point3D, 1, 4, size ,color()));
+    return (env->plot3(point3D, 1, sizeof(point3D[0])*3, size ,color()));
 }
 
 OpenRAVE::GraphHandlePtr drawEdge(OpenRAVE::EnvironmentBasePtr env, Location point1, Location point2, Color color = Color())
@@ -111,6 +111,6 @@ OpenRAVE::GraphHandlePtr drawEdge(OpenRAVE::EnvironmentBasePtr env, Location poi
     point3D[4] = point2(1);
     point3D[5] = space_dim < 3 ? 0.1 : point2(2);
 
-    return (env->drawlinestrip(&point3D[0], 2, 12, 2, color()));
+    return (env->drawlinestrip(&point3D[0], 2, sizeof(point3D[0])*3, 0.5, color()));
 }
 #endif
