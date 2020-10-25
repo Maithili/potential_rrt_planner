@@ -62,6 +62,7 @@ void RRTPlanner::plan(int max_iterations)
     search_tree_.setRoot(Node(world_ptr_->getStart()));
     for (int iteration=0; iteration<max_iterations; ++iteration)
     {
+        search_tree_.draw(world_ptr_->env_);
         Config connect_goal = reachToGoal()? world_ptr_->getGoal() 
                                 : world_ptr_->getRandomConfig();
         ConnectResult result = connectTo(connect_goal);
@@ -70,7 +71,6 @@ void RRTPlanner::plan(int max_iterations)
             break;
         }
     }
-    // search_tree_.printAll();
 }
 
 RRTPlanner::ConnectResult RRTPlanner::connectTo(Config connect_goal)
@@ -89,7 +89,6 @@ RRTPlanner::ConnectResult RRTPlanner::connectTo(Config connect_goal)
             result = ConnectResult::Collided;
             return result;
         }
-        drawConfiguration(world_ptr_->env_, new_config);
 
         if((new_config - closest_node->getConfiguration()).norm() < node_distance_tolerance)
         {
@@ -121,7 +120,6 @@ std::vector<std::vector<double> > RRTPlanner::getPath() const
     while (current_node != nullptr)
     {
         Config config = current_node->getConfiguration();
-        drawConfiguration(world_ptr_->env_, config, Blue, 10.0);
         std::vector<double> config_stl(config.data(), config.data()+config.rows());
         path.push_back(config_stl);
         current_node = current_node->getParent();

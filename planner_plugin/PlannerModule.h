@@ -96,8 +96,8 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
     std::cout<<"Upper limit configuration : "<<world_.getUpperLimits().transpose()<<std::endl;
     std::cout<<"----------------------------------------"<<std::endl;
 
-    drawConfiguration(env_, world_.getStart());
-    drawConfiguration(env_, world_.getGoal());
+    viz_objects.push_back(drawConfiguration(env_, world_.getStart(), Green, 20));
+    viz_objects.push_back(drawConfiguration(env_, world_.getGoal(), Green, 20));
 
     planner_.plan(max_iterations);
     // path_ = planner_.getPath();

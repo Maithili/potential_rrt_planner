@@ -45,6 +45,19 @@ public:
         return closest_node;
     }
 
+    void draw(OpenRAVE::EnvironmentBasePtr env)
+    {
+        std::vector<OpenRAVE::GraphHandlePtr> handles;
+        for (auto& node : tree_)
+        {
+            handles.push_back(drawConfiguration(env, node.getConfiguration(), Blue));
+            if(node.getParent() != nullptr)
+                handles.push_back(drawEdge(env, node.getConfiguration(), node.getParent()->getConfiguration()));
+        }
+        sleep(1);
+        viz_objects = handles;
+    }
+
     void printAll()
     {
         for (auto& node : tree_)
