@@ -7,14 +7,6 @@
 using namespace std;
 using namespace OpenRAVE;
 
-struct PlannerParams
-{
-    float goalbias = 0.5;
-    float stepLength = 1;
-    float stepLength_fine = 0.07;
-    float goal_resolution = 0.14; // stepLength_fine*2;
-};
-
 class TestPlannerModule : public ModuleBase
 {
 public:
@@ -39,7 +31,7 @@ class PlannerModule : public ModuleBase
 {
 public:
     PlannerModule(EnvironmentBasePtr penv, std::istream& ss) : 
-        ModuleBase(penv), env_(penv), world_(env_), planner_(&world_)
+        ModuleBase(penv), env_(penv), world_potential_{env_}, world_(env_), planner_()
     {
         RegisterCommand("PlannerCommand",boost::bind(&PlannerModule::runCommand,this,_1,_2),
                         "algo 1/2; goal x,y,th ; goalbias 1; done");
@@ -53,9 +45,9 @@ public:
 
 private:
     EnvironmentBasePtr env_;
-    EuclideanWorldWithPotential world_;
+    EuclideanWorldWithPotential world_potential_;
+    EuclideanWorld world_;
     RRTPlanner planner_;
-    PlannerParams params_;
     std::vector<double> start_;
     std::vector<double> goal_;
     int algo_;
@@ -64,7 +56,7 @@ private:
 
 bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
 {
-    int max_iterations = 1000;
+    int max_iterations = 10000;
     parseInput(sinput);
     env_ = GetEnv();
     std::vector<double> lower_limit;
@@ -83,31 +75,41 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
     //     upper_limit[i] = max_config_for_search[i] < upper_limit[i] ?
     //                      max_config_for_search[i] : upper_limit[i];
     // }
-
-    world_.setStart(start_.data());
-    world_.setGoal(goal_.data());
-    world_.setLowerLimits(lower_limit.data());
-    world_.setUpperLimits(upper_limit.data());
+    World* chosen_world = nullptr;
+    switch(algo_)
+    {
+        case(1): 
+            std::cout<<"RRT with potential"<<std::endl;
+            chosen_world = &world_potential_;
+            break;
+        case(2): 
+            std::cout<<"RRT"<<std::endl;
+            chosen_world = &world_;
+            break;
+        default:
+            std::cout<<"Wrong algorithm asked!!!"<<std::endl;
+    }
+    planner_.setWorld(chosen_world);
+    chosen_world->setStart(start_.data());
+    chosen_world->setGoal(goal_.data());
+    chosen_world->setLowerLimits(lower_limit.data());
+    chosen_world->setUpperLimits(upper_limit.data());
 
     std::cout<<"-----------Planning Problem-------------"<<std::endl;
-    std::cout<<"Start configuration : "<<world_.getStart().transpose()<<std::endl;
-    std::cout<<"Goal configuration : "<<world_.getGoal().transpose()<<std::endl;
-    std::cout<<"Lower limit configuration : "<<world_.getLowerLimits().transpose()<<std::endl;
-    std::cout<<"Upper limit configuration : "<<world_.getUpperLimits().transpose()<<std::endl;
+    std::cout<<"   Start configuration : "<<chosen_world->getStart().transpose()<<std::endl;
+    std::cout<<"   Goal configuration  : "<<chosen_world->getGoal().transpose()<<std::endl;
+    std::cout<<"   Lower limit : "<<chosen_world->getLowerLimits().transpose()<<std::endl;
+    std::cout<<"   Upper limit : "<<chosen_world->getUpperLimits().transpose()<<std::endl;
+    std::cout<<"   Goal bias : "<<planner_.goal_bias_<<std::endl;
+    std::cout<<"   Step size : "<<step_size<<std::endl;
+    std::cout<<"   Tolerance : "<<node_distance_tolerance<<std::endl;
     std::cout<<"----------------------------------------"<<std::endl;
 
-    viz_objects.push_back(drawConfiguration(env_, world_.getStart(), Green, 20));
-    viz_objects.push_back(drawConfiguration(env_, world_.getGoal(), Green, 20));
+    viz_objects_permanent.push_back(drawConfiguration(env_, world_.getStart(), Green, 10));
+    viz_objects_permanent.push_back(drawConfiguration(env_, world_.getGoal(), Green, 10));
 
     planner_.plan(max_iterations);
-    // path_ = planner_.getPath();
-    
-    for (auto& node: path_)
-    {
-        for (auto& x : node)
-            sout<<x<<", ";
-        sout<<"\n";
-    }
+    path_ = planner_.getPath();
 
     return true;
 }
@@ -138,7 +140,7 @@ void PlannerModule::parseInput(std::istream& sinput)
         }
         else if(input == "goalbias")
         {
-            sinput>>params_.goalbias;
+            sinput>>planner_.goal_bias_;
             sinput>>temp;
         }
         else if(input == "algo")

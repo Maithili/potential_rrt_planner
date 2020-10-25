@@ -10,16 +10,14 @@
 class Planner
 {
 public:
-    Planner(): goal_bias_{0.3}, step_length_{1.0}
+    Planner(): goal_bias_{0.999}
     {}
 
     virtual void plan(int max_iterations) = 0;
 
     virtual std::vector<std::vector<double> > getPath() const = 0;
 
-protected:
-    float    goal_bias_;
-    float    step_length_;
+    float goal_bias_;
 };
 
 class RRTPlanner : public Planner
@@ -35,9 +33,14 @@ public:
         Collided           = 4
     };
 
-    RRTPlanner(World* world_ptr_in): 
-        world_ptr_{world_ptr_in}, search_tree_{}, goal_node_{nullptr}
+    RRTPlanner(): 
+        search_tree_{}, goal_node_{nullptr}
     {}
+
+    void setWorld(World* world_ptr_in)
+    {
+        world_ptr_ = world_ptr_in;
+    }
     
     void plan(int max_iterations) override;
     
@@ -63,9 +66,12 @@ void RRTPlanner::plan(int max_iterations)
         ConnectResult result = connectTo(connect_goal);
         if (result == ConnectResult::ReachedGoal)
         {
-            break;
+            std::cout<<"Reached node at : "<<goal_node_->getConfiguration().transpose()<<std::endl;
+            std::cout<<"Iterations : "<<iteration<<std::endl;
+            return;
         }
     }
+    std::cout<<"Failed search after reaching max iterations of "<<max_iterations<<std::endl;
 }
 
 RRTPlanner::ConnectResult RRTPlanner::connectTo(Config connect_goal)
@@ -73,7 +79,7 @@ RRTPlanner::ConnectResult RRTPlanner::connectTo(Config connect_goal)
     std::function<float(Node)> distance_to_goal = [&connect_goal](Node node) 
         { return (node.getConfiguration() - connect_goal).norm(); };
     std::shared_ptr<Node> closest_node = search_tree_.getClosestNode(distance_to_goal);
-    
+
     int steps_allowed = 100;
     ConnectResult result(ConnectResult::Running);
     while (result == ConnectResult::Running && steps_allowed > 0)
@@ -95,7 +101,6 @@ RRTPlanner::ConnectResult RRTPlanner::connectTo(Config connect_goal)
         {
             result = ConnectResult::ReachedGoal;
             goal_node_ = closest_node;
-            std::cout<<"Goal config"<<goal_node_->getConfiguration().transpose()<<std::endl;
         }
         else if((new_config - connect_goal).norm() < node_distance_tolerance)
         {
@@ -111,14 +116,13 @@ std::vector<std::vector<double> > RRTPlanner::getPath() const
 {
     std::vector<std::vector<double> > path;
     std::shared_ptr<Node> current_node = goal_node_;
-    std::cout<<"Getting path : "<<current_node->getConfiguration()<<std::endl;
     while (current_node != nullptr)
     {
         Config config = current_node->getConfiguration();
+        viz_objects.push_back(drawConfiguration(world_ptr_->env_, config, Green, 3));
         std::vector<double> config_stl(config.data(), config.data()+config.rows());
         path.push_back(config_stl);
         current_node = current_node->getParent();
-    std::cout<<"Getting path : "<<current_node<<std::endl;
     }
 
     return path;

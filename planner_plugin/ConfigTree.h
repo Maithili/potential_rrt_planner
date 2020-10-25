@@ -12,14 +12,8 @@ public:
     void setRoot(Config root_config) 
     {
         root_ = std::make_shared<Node>(root_config);
-        // tree_.clear();
-        // tree_.push_back(root);
     }
 
-    // Node& getRoot()
-    // {
-    //     return *root_;
-    // }
 
     std::shared_ptr<Node> addChildNode(std::shared_ptr<Node> parent, Config child_config)
     {
@@ -75,19 +69,8 @@ public:
         viz_objects = handles;
     }
 
-    // void printAll()
-    // {
-    //     for (auto& node : tree_)
-    //     {
-    //         std::cout<<&node<<" : "<<node.getParent()<<std::endl;
-    //         if(&node == node.getParent())
-    //             std::cout<<"Noooooooooooooooooooooooooooooooooooo"<<std::endl;
-    //     }
-    // }
-
 private:
     std::shared_ptr<Node> root_;
-    // std::vector<Node> tree_;
 };
 
 #endif

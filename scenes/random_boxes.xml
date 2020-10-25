@@ -1,0 +1,139 @@
+<KinBody name="obstacles">
+    <RotationAxis>0 0 0 0</RotationAxis>
+    <Translation>0 0 0.2</Translation>
+    <Body name=" 0 " type="static">
+        <Geom type="box">
+            <Extents> 0.730347888477 0.58582523815  0.1</Extents>
+            <RotationAxis> 0 0 1  51.6729653686 </RotationAxis>
+            <Translation> 2.54410816751 2.07094460325  0</Translation>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+
+    <Body name=" 1 " type="static">
+        <Geom type="box">
+            <Extents> 0.731204593054 0.973052828444  0.1</Extents>
+            <RotationAxis> 0 0 1  128.03531433 </RotationAxis>
+            <Translation> 0.750815989426 -3.52898204989  0</Translation>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+
+    <Body name=" 2 " type="static">
+        <Geom type="box">
+            <Extents> 0.284660694404 0.991898404543  0.1</Extents>
+            <RotationAxis> 0 0 1  99.7746507493 </RotationAxis>
+            <Translation> 0.592027076054 -1.72665854283  0</Translation>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+
+    <Body name=" 3 " type="static">
+        <Geom type="box">
+            <Extents> 0.73541352685 0.546797736575  0.1</Extents>
+            <RotationAxis> 0 0 1  19.9822293826 </RotationAxis>
+            <Translation> 3.58320229525 -1.5903389242  0</Translation>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+
+    <Body name=" 4 " type="static">
+        <Geom type="box">
+            <Extents> 0.45163671375 0.798376142272  0.1</Extents>
+            <RotationAxis> 0 0 1  77.2927388233 </RotationAxis>
+            <Translation> 0.348398283862 2.71631586654  0</Translation>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+
+    <Body name=" 5 " type="static">
+        <Geom type="cylinder">
+            <radius> 0.245465853431 </radius>
+            <height>0.2</height>
+            <Translation> 3.53783322417 0.873568130378  0</Translation>
+            <RotationAxis>1 0 0 90</RotationAxis>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+    <Body name=" 6 " type="static">
+        <Geom type="cylinder">
+            <radius> 0.84218892367 </radius>
+            <height>0.2</height>
+            <Translation> 1.25980187427 2.91521257673  0</Translation>
+            <RotationAxis>1 0 0 90</RotationAxis>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+    <Body name=" 7 " type="static">
+        <Geom type="cylinder">
+            <radius> 0.140681249444 </radius>
+            <height>0.2</height>
+            <Translation> 0.0280851663116 -1.19925172801  0</Translation>
+            <RotationAxis>1 0 0 90</RotationAxis>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+    <Body name=" 8 " type="static">
+        <Geom type="cylinder">
+            <radius> 0.070496648861 </radius>
+            <height>0.2</height>
+            <Translation> 1.83654356718 1.44181527468  0</Translation>
+            <RotationAxis>1 0 0 90</RotationAxis>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+    <Body name=" 9 " type="static">
+        <Geom type="cylinder">
+            <radius> 0.970667967143 </radius>
+            <height>0.2</height>
+            <Translation> 0.7765987278 2.69070551023  0</Translation>
+            <RotationAxis>1 0 0 90</RotationAxis>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+    <Body name=" 10 " type="static">
+        <Geom type="cylinder">
+            <radius> 0.924020456327 </radius>
+            <height>0.2</height>
+            <Translation> -2.08101187626 -0.592797163387  0</Translation>
+            <RotationAxis>1 0 0 90</RotationAxis>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+    <Body name=" 11 " type="static">
+        <Geom type="cylinder">
+            <radius> 0.320585755893 </radius>
+            <height>0.2</height>
+            <Translation> -2.95627778889 1.05224525333  0</Translation>
+            <RotationAxis>1 0 0 90</RotationAxis>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+    <Body name=" 12 " type="static">
+        <Geom type="cylinder">
+            <radius> 0.124922936776 </radius>
+            <height>0.2</height>
+            <Translation> -1.60281180762 2.13620860548  0</Translation>
+            <RotationAxis>1 0 0 90</RotationAxis>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+    <Body name=" 13 " type="static">
+        <Geom type="cylinder">
+            <radius> 0.037408921546 </radius>
+            <height>0.2</height>
+            <Translation> -2.35100120653 -0.941023187166  0</Translation>
+            <RotationAxis>1 0 0 90</RotationAxis>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+    <Body name=" 14 " type="static">
+        <Geom type="cylinder">
+            <radius> 0.424209673254 </radius>
+            <height>0.2</height>
+            <Translation> -1.7181138607 -0.834479249777  0</Translation>
+            <RotationAxis>1 0 0 90</RotationAxis>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+</KinBody>

@@ -9,7 +9,7 @@ class Potential
 {
 public:
 
-    Potential(OpenRAVE::KinBody::Link::GeometryPtr geom): geometry_{geom}
+    Potential(std::vector<OpenRAVE::KinBody::Link::GeometryPtr> geom): geometries_{geom}
     {}
     
     Location getPotentialGradientAt(Location x);
@@ -18,7 +18,7 @@ public:
 
 protected:
 
-    OpenRAVE::KinBody::Link::GeometryPtr geometry_;
+    std::vector<OpenRAVE::KinBody::Link::GeometryPtr> geometries_;
     static const float max_dist_;
     static const float min_dist_;
     static const float max_potential_gradient_;
@@ -34,6 +34,13 @@ const float Potential::goal_potential_gradient_ = 1.0F;
 
 namespace
 {
+int sign(float x)
+{
+    if(x < 1e-6)
+        return 0;
+    else return (x>0?1:-1);
+}
+
 Location getPotentialGradientForCircle(Location x, double radius, OpenRAVE::geometry::RaveVector<double> center_vec)
 {
     Location center;
@@ -46,14 +53,48 @@ Location getPotentialGradientForCircle(Location x, double radius, OpenRAVE::geom
 
     return gradient;
 }
+
+Location getPotentialGradientForBox(Location x, 
+                                    OpenRAVE::geometry::RaveVector<double> extents_in, 
+                                    OpenRAVE::geometry::RaveVector<double> translation, 
+                                    float rotation)
+{
+    Location center;
+    center << translation.x, translation.y;
+    Location extents;
+    center << extents_in.x, extents_in.y;
+    Eigen::Matrix2d rotation_matrix;
+    rotation_matrix << cos(rotation), -sin(rotation), sin(rotation), cos(rotation);
+    Location rel = rotation_matrix*(x-center);
+    
+    Location potential_distances;
+    potential_distances << std::max(fabs(rel[0]) - extents[0], 0.0) * sign(rel[0]),
+                           std::max(fabs(rel[1]) - extents[1], 0.0) * sign(rel[1]);
+    Location gradient = potential_distances.normalized();
+    gradient *= Potential::calculatePotentialGradient(potential_distances.norm());
+    return gradient;
+}
 }
 
 Location Potential::getPotentialGradientAt(Location x)
 {
-    if( (geometry_->GetType() == OpenRAVE::GT_Cylinder) || (geometry_->GetType() == OpenRAVE::GT_Sphere))
-        return (getPotentialGradientForCircle(x, geometry_->GetCylinderRadius(), geometry_->GetTransform().trans));
-    else
-        return Location();
+    Location gradient = Location::Zero();
+    for(auto geomtry : geometries_)
+    {
+        Location geom_grad;
+        if( (geomtry->GetType() == OpenRAVE::GT_Cylinder) || (geomtry->GetType() == OpenRAVE::GT_Sphere))
+        {
+            geom_grad = getPotentialGradientForCircle(x, geomtry->GetCylinderRadius(), geomtry->GetTransform().trans);
+        }
+        else if( (geomtry->GetType() == OpenRAVE::GT_Box))
+        {
+            geom_grad = getPotentialGradientForBox(x, geomtry->GetBoxExtents(), geomtry->GetTransform().trans, geomtry->GetTransform().rot.x);
+        }
+        if (geom_grad.norm() > gradient.norm())
+            gradient = geom_grad;
+    }
+
+    return gradient;
 }
 
 float Potential::calculateGoalPotentialGradient()

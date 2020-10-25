@@ -110,7 +110,7 @@ private:
         links = obstacles->GetLinks();
         for (OpenRAVE::KinBody::LinkPtr l : links)
         {
-            obstacle_geometries_.push_back(Potential(l->GetGeometry(0)));
+            obstacle_geometries_.push_back(Potential(l->GetGeometries()));
         }
     }
 

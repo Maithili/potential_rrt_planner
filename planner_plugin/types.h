@@ -7,29 +7,32 @@
 static constexpr int config_dim = 2;
 static constexpr int space_dim = 2;
 
-static constexpr float step_size = 0.1;
-static constexpr float node_distance_tolerance = step_size * 2;
+static constexpr float step_size = 0.2;
+static constexpr float node_distance_tolerance = step_size * 1.5;
 
 typedef struct Color
 {   
-    float r = 0.0;
-    float g = 0.0;
-    float b = 0.0;
+    float r = 0.2;
+    float g = 0.2;
+    float b = 0.2;
+    float code[3];
     float* operator()()
     {
-        float code[]{r,g,b};
+        code[0]=r; code[1]=g; code[2]=b;
         return code;
     }
 };
 Color Black{0.0, 0.0, 0.0};
-Color Red  {1.0, 0.0, 0.0};
-Color Green{0.0, 1.0, 0.0};
-Color Blue {0.0, 0.0, 1.0};
+Color Red  {0.8, 0.1, 0.1};
+Color Green{0.5, 0.8, 0.2};
+Color Blue {0.0, 0.0, 0.7};
+Color Pale {0.5, 0.5, 0.6};
 
 using Config = Eigen::Matrix<double,config_dim,1>;
 using Location = Eigen::Matrix<double,space_dim,1>;
 
 std::vector<OpenRAVE::GraphHandlePtr> viz_objects;
+std::vector<OpenRAVE::GraphHandlePtr> viz_objects_permanent;
 
 class Node
 {
@@ -79,16 +82,6 @@ private:
     std::shared_ptr<Node>               parent_;
     std::vector<std::shared_ptr<Node> >  children_;
 };
-
-// void drawConfiguration(OpenRAVE::EnvironmentBasePtr env, Location point_eigen, Color color = Color(), float size = 5)
-// {
-//     float point3D[3];
-//     point3D[0] = point_eigen(0);
-//     point3D[1] = point_eigen(1);
-//     point3D[2] = space_dim < 3 ? 0.1 : point_eigen(2);
-
-//     viz_objects.push_back(env->plot3(point3D, 1, 4, size ,color()));
-// }
 
 OpenRAVE::GraphHandlePtr drawConfiguration(OpenRAVE::EnvironmentBasePtr env, Location point_eigen, Color color = Color(), float size = 5)
 {

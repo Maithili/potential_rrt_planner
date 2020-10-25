@@ -45,21 +45,14 @@ if __name__ == "__main__":
     try:
         with env:
             mod = RaveCreateModule(env,'PlannerModule')
-            start = time.clock()
             seed = 1
-            if (len(sys.argv)>1):
-                algo = sys.argv[1]
-            else:
-                algo = '1'
-            if (algo == '2'):
-                print 'potential'
-                goalbias = 80
-            else:
-                print 'RRT'
-                goalbias = 30
-            print mod.SendCommand("PlannerCommand algo %s ; seed %f ; goal %f , %f , %f ; goalbias %f ; done" %(algo,seed,goalconfig[0],goalconfig[1],goalconfig[2],float(goalbias)/100))
+            goalbias = 50 # in percentage
+            start = time.clock()
+            algo = 1
+            raw_input("Press enter to start...")
+            print mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %f , %f , %f ; goalbias %f ; done" %(algo,seed,goalconfig[0],goalconfig[1],goalconfig[2],float(goalbias)/100))
             end = time.clock()
-            print end - start
+            print 'Total time for plugin : ', end - start
         waitrobot(robot)
     except Exception as e:
         print(e)
