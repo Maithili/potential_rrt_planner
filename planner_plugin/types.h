@@ -8,7 +8,20 @@ static constexpr int config_dim = 2;
 static constexpr int space_dim = 2;
 
 static constexpr float step_size = 0.2;
+static constexpr float inner_step_size = step_size;
+static constexpr float outer_step_size = step_size*5;
 static constexpr float node_distance_tolerance = step_size * 1.5;
+
+namespace potential_params
+{
+    const float max_dist                = 2.5F;
+    const float min_dist                = 0.3F;
+    const float potential_power         = 1.5F;
+    const float max_potential_gradient  = 10.0F;
+    const float potential_gradient_goal = 15.0F;
+    const float potential_gradient_rand = 8.0F;
+    float goal_potential_gradient       = potential_gradient_goal;
+}
 
 typedef struct Color
 {   
@@ -24,8 +37,8 @@ typedef struct Color
 };
 Color Black{0.0, 0.0, 0.0};
 Color Red  {0.8, 0.1, 0.1};
-Color Green{0.5, 0.8, 0.2};
-Color Blue {0.0, 0.0, 0.7};
+Color Green{0.2, 0.8, 0.2};
+Color Blue {0.2, 0.1, 0.7};
 Color Pale {0.6, 0.5, 0.6};
 
 using Config = Eigen::Matrix<double,config_dim,1>;

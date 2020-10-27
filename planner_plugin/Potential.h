@@ -19,18 +19,7 @@ public:
 protected:
 
     std::vector<OpenRAVE::KinBody::Link::GeometryPtr> geometries_;
-    static const float max_dist_;
-    static const float min_dist_;
-    static const float max_potential_gradient_;
-    static const float potential_power_;
-    static const float goal_potential_gradient_;
 };
-
-const float Potential::max_dist_                = 2.5F;
-const float Potential::min_dist_                = 0.4F;
-const float Potential::max_potential_gradient_  = 10.0F;
-const float Potential::potential_power_         = 2.0F;
-const float Potential::goal_potential_gradient_ = 10.0F;
 
 namespace
 {
@@ -99,21 +88,22 @@ Location Potential::getPotentialGradientAt(Location x)
 
 float Potential::calculateGoalPotentialGradient()
 {
-    return goal_potential_gradient_;
+    return potential_params::goal_potential_gradient;
 }
 
 float Potential::calculatePotentialGradient(float dist)
 {
-    if(dist > max_dist_)
+    if(dist > potential_params::max_dist)
         return 0.0F;
     else
     {   
-        float factor = max_potential_gradient_*pow(min_dist_,potential_power_);
-        if (dist < min_dist_)
-            return max_potential_gradient_;
+        float factor = potential_params::max_potential_gradient
+                     * pow(potential_params::min_dist,potential_params::potential_power);
+        if (dist < potential_params::min_dist)
+            return potential_params::max_potential_gradient;
         else
         {
-            return (factor/pow(dist,potential_power_));
+            return (factor/pow(dist,potential_params::potential_power));
         }
     }
 }

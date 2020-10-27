@@ -61,6 +61,7 @@ void RRTPlanner::plan(int max_iterations)
     for (int iteration=0; iteration<max_iterations; ++iteration)
     {
         // search_tree_.draw(world_ptr_->env_);
+        potential_params::goal_potential_gradient = potential_params::potential_gradient_goal;
         Config connect_goal = reachToGoal()? world_ptr_->getGoal() 
                                 : world_ptr_->getRandomConfig();
         ConnectResult result = connectTo(connect_goal);

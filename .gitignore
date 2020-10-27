@@ -11,3 +11,4 @@ remove/*
 */build/*
 scenes/random_obstacles.xml
 scenes/random_circles.xml
+todo.txt

@@ -39,6 +39,7 @@ public:
             float f = static_cast<float>(rand())/static_cast<float>(RAND_MAX);
             random_config(idx,0) = ((1-f) * lower_limits_(idx,0)) + (f * (upper_limits_(idx,0)));
         }
+        potential_params::goal_potential_gradient = potential_params::potential_gradient_rand;
         return random_config;
     }
 
