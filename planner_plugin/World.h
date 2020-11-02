@@ -25,7 +25,7 @@ public:
     {
         OpenRAVE::RobotBasePtr robot = env_->GetRobot("PR2");
         std::vector<double> config_vector(config.data(), config.data()+config.rows());
-        config_vector.push_back(0.0);
+        if (config_dim < 3) config_vector.push_back(0.0);
         robot->SetActiveDOFValues(config_vector);
         return (   env_->CheckCollision(robot)
                 || robot->CheckSelfCollision());
@@ -93,10 +93,10 @@ public:
 private:
     Config getObstacleGradient(Config q)
     {
-        Config gradient;
-        for (auto& obstacle : obstacle_geometries_)
+        Config gradient = Config::Zero();
+        for (Potential obstacle : obstacle_geometries_)
         {
-            gradient += obstacle.getPotentialGradientAt(q);
+            gradient.topRows(space_dim) += obstacle.getPotentialGradientAt(q.topRows(space_dim));
         }
         return gradient;
     }

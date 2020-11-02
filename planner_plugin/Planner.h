@@ -89,7 +89,7 @@ RRTPlanner::ConnectResult RRTPlanner::connectTo(Config connect_goal)
         Config new_config = world_ptr_->stepTowards(closest_node->getConfiguration(), connect_goal);
         if(world_ptr_->isInCollision(new_config))
         {
-            viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, new_config, Red, 3));
+            viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, new_config.topRows(space_dim), Red, 3));
             result = ConnectResult::Collided;
             return result;
         }
@@ -101,8 +101,8 @@ RRTPlanner::ConnectResult RRTPlanner::connectTo(Config connect_goal)
 
         closest_node = search_tree_.addChildNode(closest_node, new_config);
 
-        viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, closest_node->getConfiguration(), Blue));
-        viz_objects_permanent.push_back(drawEdge(world_ptr_->env_, closest_node->getConfiguration(), closest_node->getParent()->getConfiguration()));
+        viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, closest_node->getConfiguration().topRows(space_dim), Blue));
+        viz_objects_permanent.push_back(drawEdge(world_ptr_->env_, closest_node->getConfiguration().topRows(space_dim), closest_node->getParent()->getConfiguration().topRows(space_dim)));
 
         if(world_ptr_->isGoal(new_config))
         {
@@ -126,7 +126,7 @@ std::vector<std::vector<double> > RRTPlanner::getPath() const
     while (current_node != nullptr)
     {
         Config config = current_node->getConfiguration();
-        viz_objects.push_back(drawConfiguration(world_ptr_->env_, config, Green, 3));
+        viz_objects.push_back(drawConfiguration(world_ptr_->env_, config.topRows(space_dim), Green, 3));
         std::vector<double> config_stl(config.data(), config.data()+config.rows());
         path.push_back(config_stl);
         current_node = current_node->getParent();

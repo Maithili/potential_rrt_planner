@@ -105,8 +105,8 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
     std::cout<<"   Tolerance : "<<node_distance_tolerance<<std::endl;
     std::cout<<"----------------------------------------"<<std::endl;
 
-    viz_objects_permanent.push_back(drawConfiguration(env_, chosen_world->getStart(), Green, 10));
-    viz_objects_permanent.push_back(drawConfiguration(env_, chosen_world->getGoal(), Green, 10));
+    viz_objects_permanent.push_back(drawConfiguration(env_, chosen_world->getStart().topRows(space_dim), Green, 10));
+    viz_objects_permanent.push_back(drawConfiguration(env_, chosen_world->getGoal().topRows(space_dim), Green, 10));
 
     planner_.plan(max_iterations);
     path_ = planner_.getPath();

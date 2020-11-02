@@ -4,8 +4,11 @@
 #include <iostream>
 #include <openrave/plugin.h>
 
-static constexpr int config_dim = 2;
+static constexpr int config_dim = 3;
 static constexpr int space_dim = 2;
+
+using Config = Eigen::Matrix<double,config_dim,1>;
+using Location = Eigen::Matrix<double,space_dim,1>;
 
 static constexpr float step_size = 0.2;
 static constexpr float inner_step_size = step_size;
@@ -40,9 +43,6 @@ Color Red  {0.8, 0.1, 0.1};
 Color Green{0.2, 0.8, 0.2};
 Color Blue {0.2, 0.1, 0.7};
 Color Pale {0.6, 0.5, 0.6};
-
-using Config = Eigen::Matrix<double,config_dim,1>;
-using Location = Eigen::Matrix<double,space_dim,1>;
 
 std::vector<OpenRAVE::GraphHandlePtr> viz_objects;
 std::vector<OpenRAVE::GraphHandlePtr> viz_objects_permanent;
