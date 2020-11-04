@@ -12,12 +12,13 @@ using Location = Eigen::Matrix<double,space_dim,1>;
 
 static constexpr float step_size = 0.2;
 static constexpr float inner_step_size = step_size;
-static constexpr float outer_step_size = step_size*5;
+static constexpr int num_baby_steps = 5;
+static constexpr float outer_step_size = step_size*static_cast<float>(num_baby_steps);
 static constexpr float node_distance_tolerance = step_size * 1.5;
 
 namespace potential_params
 {
-    const float max_dist                = 2.5F;
+    const float max_dist                = 3.5F;
     const float min_dist                = 0.3F;
     const float potential_power         = 1.5F;
     const float max_potential_gradient  = 10.0F;
@@ -87,11 +88,14 @@ public:
 
     Config getConfiguration() const {return value_;}
 
+    void setIntermediateSteps(std::vector<Config> in) {intermediate_steps_ = in;}
+    std::vector<Config> getIntermediateSteps() {return intermediate_steps_;}
 
 private:
 
     float               distance_;
     Config              value_;
+    std::vector<Config> intermediate_steps_;
     std::shared_ptr<Node>               parent_;
     std::vector<std::shared_ptr<Node> >  children_;
 };

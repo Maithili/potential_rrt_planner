@@ -45,7 +45,7 @@ public:
 
     Config getRandomConfigNotInCollision();
 
-    virtual Config stepTowards(Config from, Config towards) = 0;
+    virtual Config stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps) = 0;
 
     bool isGoal(Config config) const
     {
@@ -66,7 +66,7 @@ public:
     EuclideanWorld(OpenRAVE::EnvironmentBasePtr& env): World(env)
     {};
 
-    Config stepTowards(Config from, Config towards)
+    Config stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps)
     {
         Config goal_gradient = (towards - from).normalized();
         return (from + goal_gradient * step_size);
@@ -81,16 +81,30 @@ public:
         populatePotentials();
     };
 
-    Config stepTowards(Config from, Config towards)
+    Config stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps)
+    {
+        Config step;
+        intermediate_steps.clear();
+        for(int i=0; i<num_baby_steps; ++i)
+        {
+            step = smallStep(from, towards);
+            intermediate_steps.push_back(step);
+            from = step;
+        }
+        return step;
+    }
+
+private:
+
+    Config smallStep(Config from, Config towards)
     {
         Config goal_gradient = (towards - from).normalized();
         goal_gradient *= Potential::calculateGoalPotentialGradient();
         Config obstacle_gradient = getObstacleGradient(from);
-        Config step = (goal_gradient + obstacle_gradient).normalized() * step_size;
+        Config step = (goal_gradient + obstacle_gradient).normalized() * inner_step_size;
         return (from + step);
     }
 
-private:
     Config getObstacleGradient(Config q)
     {
         Config gradient = Config::Zero();
