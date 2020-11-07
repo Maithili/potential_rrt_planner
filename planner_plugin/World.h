@@ -3,7 +3,7 @@
 
 #include <openrave/environment.h>
 
-#include "Potential.h"
+#include "FlatPotential.h"
 
 class World
 {
@@ -53,6 +53,7 @@ public:
     }
     
     OpenRAVE::EnvironmentBasePtr env_;
+    
 protected:
     Config start_location_;
     Config goal_location_;
@@ -99,7 +100,7 @@ private:
     Config smallStep(Config from, Config towards)
     {
         Config goal_gradient = (towards - from).normalized();
-        goal_gradient *= Potential::calculateGoalPotentialGradient();
+        goal_gradient *= FlatPotential::calculateGoalPotentialGradient();
         Config obstacle_gradient = getObstacleGradient(from);
         Config step = (goal_gradient + obstacle_gradient).normalized() * inner_step_size;
         return (from + step);
@@ -108,7 +109,7 @@ private:
     Config getObstacleGradient(Config q)
     {
         Config gradient = Config::Zero();
-        for (Potential obstacle : obstacle_geometries_)
+        for (FlatPotential obstacle : obstacle_geometries_)
         {
             gradient.topRows(space_dim) += obstacle.getPotentialGradientAt(q.topRows(space_dim));
         }
@@ -125,11 +126,11 @@ private:
         links = obstacles->GetLinks();
         for (OpenRAVE::KinBody::LinkPtr l : links)
         {
-            obstacle_geometries_.push_back(Potential(l->GetGeometries()));
+            obstacle_geometries_.push_back(FlatPotential(l->GetGeometries()));
         }
     }
 
-    std::vector<Potential> obstacle_geometries_;
+    std::vector<FlatPotential> obstacle_geometries_;
 };
 
 class ConfigWorld : public World

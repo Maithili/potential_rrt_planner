@@ -3,7 +3,7 @@
 
 #include <random>
 
-#include "World.h"
+#include "HighDofWorld.h"
 #include "types.h"
 #include "ConfigTree.h"
 

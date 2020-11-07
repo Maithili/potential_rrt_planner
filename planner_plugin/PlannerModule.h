@@ -31,7 +31,8 @@ class PlannerModule : public ModuleBase
 {
 public:
     PlannerModule(EnvironmentBasePtr penv, std::istream& ss) : 
-        ModuleBase(penv), env_(penv), world_potential_{env_}, world_(env_), planner_()
+        ModuleBase(penv), env_(penv), world_potential_(env_), 
+        world_(env_), world_high_dof_(env_), planner_()
     {
         RegisterCommand("PlannerCommand",boost::bind(&PlannerModule::runCommand,this,_1,_2),
                         "algo 1/2; goal x,y,th ; goalbias 1; done");
@@ -47,6 +48,7 @@ private:
     EnvironmentBasePtr env_;
     EuclideanWorldWithPotential world_potential_;
     EuclideanWorld world_;
+    HighDofWorld world_high_dof_;
     RRTPlanner planner_;
     std::vector<double> start_;
     std::vector<double> goal_;
@@ -58,7 +60,7 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
 {
     int max_iterations = 10000;
     parseInput(sinput);
-    env_ = GetEnv();
+    // env_ = GetEnv();
     std::vector<double> lower_limit;
     lower_limit.push_back(-5.0);
     lower_limit.push_back(-5.0);
@@ -78,11 +80,14 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
     World* chosen_world = nullptr;
     switch(algo_)
     {
-        case(1): 
+        case(1):
+            std::cout<<"RRT with potential on robot arm"<<std::endl;
+            chosen_world = &world_high_dof_;
+        case(2): 
             std::cout<<"RRT with potential"<<std::endl;
             chosen_world = &world_potential_;
             break;
-        case(2): 
+        case(3): 
             std::cout<<"RRT"<<std::endl;
             chosen_world = &world_;
             break;

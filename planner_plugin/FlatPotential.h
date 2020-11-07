@@ -5,11 +5,11 @@
 
 #include "types.h"
 
-class Potential
+class FlatPotential
 {
 public:
 
-    Potential(std::vector<OpenRAVE::KinBody::Link::GeometryPtr> geom): geometries_{geom}
+    FlatPotential(std::vector<OpenRAVE::KinBody::Link::GeometryPtr> geom): geometries_{geom}
     {}
     
     Location getPotentialGradientAt(Location x);
@@ -36,7 +36,7 @@ Location getPotentialGradientForCircle(Location x, double radius, OpenRAVE::geom
     float distance = (x-center).norm() - radius;
 
     Location gradient = (x-center).normalized();
-    gradient *= Potential::calculatePotentialGradient(distance);
+    gradient *= FlatPotential::calculatePotentialGradient(distance);
 
     return gradient;
 }
@@ -59,12 +59,12 @@ Location getPotentialGradientForBox(Location point,
     potential_distances << std::max(fabs(rel[0]) - extents[0], 0.0) * sign(rel[0]),
                            std::max(fabs(rel[1]) - extents[1], 0.0) * sign(rel[1]);
     Location gradient = rotation_matrix * potential_distances.normalized();
-    gradient *= Potential::calculatePotentialGradient(potential_distances.norm());
+    gradient *= FlatPotential::calculatePotentialGradient(potential_distances.norm());
     return gradient;
 }
 }
 
-Location Potential::getPotentialGradientAt(Location x)
+Location FlatPotential::getPotentialGradientAt(Location x)
 {
     Location gradient = Location::Zero();
     for(auto geomtry : geometries_)
@@ -86,12 +86,12 @@ Location Potential::getPotentialGradientAt(Location x)
     return gradient;
 }
 
-float Potential::calculateGoalPotentialGradient()
+float FlatPotential::calculateGoalPotentialGradient()
 {
     return potential_params::goal_potential_gradient;
 }
 
-float Potential::calculatePotentialGradient(float dist)
+float FlatPotential::calculatePotentialGradient(float dist)
 {
     if(dist > potential_params::max_dist)
         return 0.0F;

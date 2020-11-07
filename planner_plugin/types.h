@@ -4,6 +4,22 @@
 #include <iostream>
 #include <openrave/plugin.h>
 
+extern "C" {
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
+#include "libcd/chomp.h"
+#include "libcd/grid.h"
+#include "libcd/grid_flood.h"
+#include "libcd/kin.h"
+#include "libcd/mat.h"
+#include "libcd/os.h"
+#include "libcd/spatial.h"
+#include "libcd/util.h"
+#include "libcd/util_shparse.h"
+}
+
+#define HUGE_VAL 1000.0
+
 static constexpr int config_dim = 3;
 static constexpr int space_dim = 2;
 
@@ -26,6 +42,123 @@ namespace potential_params
     const float potential_gradient_rand = 8.0F;
     float goal_potential_gradient       = potential_gradient_goal;
 }
+
+struct Sdf
+{
+   char kinbody_name[256]; /* the grid frame is AABB of this robot */
+   double pose_kinbody[7]; /* pose of the grid w.r.t. the kinbody frame */
+   /* from world_pt to gsdf_pt */
+   int toGridFrame(double* pose, OpenRAVE::EnvironmentBasePtr& env, bool only_direction = false)
+   {
+      OpenRAVE::Transform t = env->GetKinBody(this->kinbody_name)->GetTransform();
+      double pose_world_gsdf[7];
+      if(only_direction)
+      {
+        pose_world_gsdf[0] = 0.0;
+        pose_world_gsdf[1] = 0.0;
+        pose_world_gsdf[2] = 0.0;
+      }
+      else
+      {
+        pose_world_gsdf[0] = t.trans.x;
+        pose_world_gsdf[1] = t.trans.y;
+        pose_world_gsdf[2] = t.trans.z;
+      }
+      pose_world_gsdf[3] = t.rot.y;
+      pose_world_gsdf[4] = t.rot.z;
+      pose_world_gsdf[5] = t.rot.w;
+      pose_world_gsdf[6] = t.rot.x;
+      cd_kin_pose_compose(pose_world_gsdf, this->pose_kinbody, pose_world_gsdf);
+      cd_kin_pose_invert(pose_world_gsdf, pose_gsdf_world);
+      cd_kin_pose_compose(pose_gsdf_world, pose, pose); /* world_pt to gsdf_pt */
+   }
+   int toWorldFrame(double* pose, OpenRAVE::EnvironmentBasePtr& env, bool only_direction = false)
+   {
+      OpenRAVE::Transform t = env->GetKinBody(this->kinbody_name)->GetTransform();
+      double pose_world_gsdf[7];
+      if(only_direction)
+      {
+        pose_world_gsdf[0] = 0.0;
+        pose_world_gsdf[1] = 0.0;
+        pose_world_gsdf[2] = 0.0;
+      }
+      else
+      {
+        pose_world_gsdf[0] = t.trans.x;
+        pose_world_gsdf[1] = t.trans.y;
+        pose_world_gsdf[2] = t.trans.z;
+      }
+      pose_world_gsdf[3] = t.rot.y;
+      pose_world_gsdf[4] = t.rot.z;
+      pose_world_gsdf[5] = t.rot.w;
+      pose_world_gsdf[6] = t.rot.x;
+      cd_kin_pose_compose(pose_world_gsdf, this->pose_kinbody, pose_world_gsdf);
+      cd_kin_pose_compose(pose_world_gsdf, pose, pose); /* gsdf_pt to world_pt */
+   }
+   int originInWorld(double* pose, OpenRAVE::EnvironmentBasePtr& env)
+   {
+       OpenRAVE::Transform t = env->GetKinBody(this->kinbody_name)->GetTransform();
+       double pose_world_gsdf[7];
+       pose_world_gsdf[0] = t.trans.x;
+       pose_world_gsdf[1] = t.trans.y;
+       pose_world_gsdf[2] = t.trans.z;
+       pose_world_gsdf[3] = t.rot.y;
+       pose_world_gsdf[4] = t.rot.z;
+       pose_world_gsdf[5] = t.rot.w;
+       pose_world_gsdf[6] = t.rot.x;
+       cd_kin_pose_compose(pose, this->pose_kinbody, pose);
+   }
+   double pose_gsdf_world[7];
+   cd_grid * grid;
+};
+
+struct Sphere
+{
+    /* parsed from xml */
+    int linkindex;
+    char linkname[32];
+    double pos_linkframe[3];
+    double pos_worldframe[3];
+    double radius;
+    void getJacobian(boost::multi_array<double,2>& jacobian_out, OpenRAVE::RobotBasePtr& robot)
+    {
+        OpenRAVE::geometry::RaveVector<double> pose(pos_linkframe[0], pos_linkframe[1], pos_linkframe[2]);
+        robot->CalculateJacobian(this->linkindex, pose, jacobian_out);
+    }
+};
+
+struct Spheres
+{
+    std::vector<Sphere> list;
+    char robotname[32];
+
+    void setBarretWAM(OpenRAVE::EnvironmentBasePtr& env)
+    {
+        strcpy(robotname, "BarrettWAM");
+        Sphere s;
+        strcpy( s.linkname, "wam0"     ) ; s.pos_linkframe[0] = 0.22; s.pos_linkframe[1] = 0.14 ; s.pos_linkframe[2] = 0.346; s.radius=0.15; this->list.push_back(s);
+        strcpy( s.linkname, "wam2"     ) ; s.pos_linkframe[0] = 0.0 ; s.pos_linkframe[1] = 0.0  ; s.pos_linkframe[2] = 0.2  ; s.radius=0.06; this->list.push_back(s);
+        strcpy( s.linkname, "wam2"     ) ; s.pos_linkframe[0] = 0.0 ; s.pos_linkframe[1] = 0.0  ; s.pos_linkframe[2] = 0.3  ; s.radius=0.06; this->list.push_back(s);
+        strcpy( s.linkname, "wam2"     ) ; s.pos_linkframe[0] = 0.0 ; s.pos_linkframe[1] = 0.0  ; s.pos_linkframe[2] = 0.4  ; s.radius=0.06; this->list.push_back(s);
+        strcpy( s.linkname, "wam2"     ) ; s.pos_linkframe[0] = 0.0 ; s.pos_linkframe[1] = 0.0  ; s.pos_linkframe[2] = 0.5  ; s.radius=0.06; this->list.push_back(s);
+        strcpy( s.linkname, "wam3"     ) ; s.pos_linkframe[0] = 0.0 ; s.pos_linkframe[1] = 0.0  ; s.pos_linkframe[2] = 0.0  ; s.radius=0.06; this->list.push_back(s);
+        strcpy( s.linkname, "wam4"     ) ; s.pos_linkframe[0] = 0.0 ; s.pos_linkframe[1] = 0.0  ; s.pos_linkframe[2] = 0.2  ; s.radius=0.06; this->list.push_back(s);
+        strcpy( s.linkname, "wam4"     ) ; s.pos_linkframe[0] = 0.0 ; s.pos_linkframe[1] = 0.0  ; s.pos_linkframe[2] = 0.1  ; s.radius=0.06; this->list.push_back(s);
+        strcpy( s.linkname, "wam4"     ) ; s.pos_linkframe[0] = 0.0 ; s.pos_linkframe[1] = 0.0  ; s.pos_linkframe[2] = 0.3  ; s.radius=0.06; this->list.push_back(s);
+        strcpy( s.linkname, "wam6"     ) ; s.pos_linkframe[0] = 0.0 ; s.pos_linkframe[1] = 0.0  ; s.pos_linkframe[2] = 0.1  ; s.radius=0.06; this->list.push_back(s);
+        strcpy( s.linkname, "Finger0-1") ; s.pos_linkframe[0] = 0.05; s.pos_linkframe[1] = -0.01; s.pos_linkframe[2] = 0.0  ; s.radius=0.04; this->list.push_back(s);
+        strcpy( s.linkname, "Finger1-1") ; s.pos_linkframe[0] = 0.05; s.pos_linkframe[1] = -0.01; s.pos_linkframe[2] = 0.0  ; s.radius=0.04; this->list.push_back(s);
+        strcpy( s.linkname, "Finger2-1") ; s.pos_linkframe[0] = 0.05; s.pos_linkframe[1] = -0.01; s.pos_linkframe[2] = 0.0  ; s.radius=0.04; this->list.push_back(s);
+        strcpy( s.linkname, "Finger0-2") ; s.pos_linkframe[0] = 0.05; s.pos_linkframe[1] =  0.0 ; s.pos_linkframe[2] = 0.0  ; s.radius=0.04; this->list.push_back(s);
+        strcpy( s.linkname, "Finger1-2") ; s.pos_linkframe[0] = 0.05; s.pos_linkframe[1] =  0.0 ; s.pos_linkframe[2] = 0.0  ; s.radius=0.04; this->list.push_back(s);
+        strcpy( s.linkname, "Finger2-2") ; s.pos_linkframe[0] = 0.05; s.pos_linkframe[1] =  0.0 ; s.pos_linkframe[2] = 0.0  ; s.radius=0.04; this->list.push_back(s);
+        //  TODO(maithili)  : set linkindex
+        for (Sphere temp : this->list)
+        {
+            temp.linkindex = env->GetRobot(robotname)->GetLink(temp.linkname)->GetIndex();
+        }
+    }
+};
 
 typedef struct Color
 {   
@@ -123,4 +256,21 @@ OpenRAVE::GraphHandlePtr drawEdge(OpenRAVE::EnvironmentBasePtr env, Location poi
 
     return (env->drawlinestrip(&point3D[0], 2, sizeof(point3D[0])*3, 0.5, color()));
 }
+
+template<int S>
+void copyToVector(const Eigen::Matrix<double, S, 1>& eigen, std::vector<double>& vector)
+{
+    vector.clear();
+    vector.reserve(S);
+    for (int i=0;i<S;++i)
+        vector.push_back(eigen[i]);
+}
+
+template<int S>
+void copyToEigen(const std::vector<double>& vector, Eigen::Matrix<double, S, 1>& eigen)
+{
+    for (int i=0;i<S;++i)
+        eigen[i]=vector[i];
+}
+
 #endif
