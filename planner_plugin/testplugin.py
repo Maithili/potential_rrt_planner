@@ -2,16 +2,13 @@
 from openravepy import *
 RaveInitialize()
 RaveLoadPlugin('build/planner_plugin')
-RaveLoadPlugin('build/chomp/chomp')
 try:
     env=Environment()
     env.Load('../scenes/myscene.env.xml')
-    # Planner = RaveCreateModule(env,'PlannerModule')
-    Planner = RaveCreateModule(env,'orcdchomp')
+    Planner = RaveCreateModule(env,'PlannerModule')
     print(Planner)
-    print('Hahahaa!')
-    # print Planner.SendCommand('PlannerCommand testing')
-    print Planner.SendCommand('viewspheres PR2')
-    print('Hohoho!')
+    print('Merry...')
+    print Planner.SendCommand('TestCommand testing')
+    print('Christmas!')
 finally:
     RaveDestroy()

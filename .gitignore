@@ -13,3 +13,4 @@ scenes/random_obstacles.xml
 scenes/random_circles.xml
 todo.txt
 planner_plugin/or_cdchomp/*
+*.dat

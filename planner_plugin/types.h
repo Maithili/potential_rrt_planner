@@ -20,8 +20,8 @@ extern "C" {
 
 #define HUGE_VAL 1000.0
 
-static constexpr int config_dim = 3;
-static constexpr int space_dim = 2;
+static constexpr int config_dim = 7;
+static constexpr int space_dim = 3;
 
 using Config = Eigen::Matrix<double,config_dim,1>;
 using Location = Eigen::Matrix<double,space_dim,1>;
@@ -47,8 +47,10 @@ struct Sdf
 {
    char kinbody_name[256]; /* the grid frame is AABB of this robot */
    double pose_kinbody[7]; /* pose of the grid w.r.t. the kinbody frame */
+   double pose_gsdf_world[7];
+   cd_grid * grid;
    /* from world_pt to gsdf_pt */
-   int toGridFrame(double* pose, OpenRAVE::EnvironmentBasePtr& env, bool only_direction = false)
+   void toGridFrame(double* pose, OpenRAVE::EnvironmentBasePtr& env, bool only_direction = false)
    {
       OpenRAVE::Transform t = env->GetKinBody(this->kinbody_name)->GetTransform();
       double pose_world_gsdf[7];
@@ -72,7 +74,7 @@ struct Sdf
       cd_kin_pose_invert(pose_world_gsdf, pose_gsdf_world);
       cd_kin_pose_compose(pose_gsdf_world, pose, pose); /* world_pt to gsdf_pt */
    }
-   int toWorldFrame(double* pose, OpenRAVE::EnvironmentBasePtr& env, bool only_direction = false)
+   void toWorldFrame(double* pose, OpenRAVE::EnvironmentBasePtr& env, bool only_direction = false)
    {
       OpenRAVE::Transform t = env->GetKinBody(this->kinbody_name)->GetTransform();
       double pose_world_gsdf[7];
@@ -95,21 +97,17 @@ struct Sdf
       cd_kin_pose_compose(pose_world_gsdf, this->pose_kinbody, pose_world_gsdf);
       cd_kin_pose_compose(pose_world_gsdf, pose, pose); /* gsdf_pt to world_pt */
    }
-   int originInWorld(double* pose, OpenRAVE::EnvironmentBasePtr& env)
+   void originInWorld(double* pose, OpenRAVE::EnvironmentBasePtr& env)
    {
        OpenRAVE::Transform t = env->GetKinBody(this->kinbody_name)->GetTransform();
-       double pose_world_gsdf[7];
-       pose_world_gsdf[0] = t.trans.x;
-       pose_world_gsdf[1] = t.trans.y;
-       pose_world_gsdf[2] = t.trans.z;
-       pose_world_gsdf[3] = t.rot.y;
-       pose_world_gsdf[4] = t.rot.z;
-       pose_world_gsdf[5] = t.rot.w;
-       pose_world_gsdf[6] = t.rot.x;
-       cd_kin_pose_compose(pose, this->pose_kinbody, pose);
+       pose[0] = t.trans.x;
+       pose[1] = t.trans.y;
+       pose[2] = t.trans.z;
+       pose[3] = t.rot.y;
+       pose[4] = t.rot.z;
+       pose[5] = t.rot.w;
+       pose[6] = t.rot.x;
    }
-   double pose_gsdf_world[7];
-   cd_grid * grid;
 };
 
 struct Sphere
@@ -233,18 +231,35 @@ private:
     std::vector<std::shared_ptr<Node> >  children_;
 };
 
-OpenRAVE::GraphHandlePtr drawConfiguration(OpenRAVE::EnvironmentBasePtr env, Location point_eigen, Color color = Color(), float size = 5)
+Location getEndeffector(OpenRAVE::EnvironmentBasePtr env, Config angles)
 {
+    Location loc = Location::Zero();
+    std::vector<OpenRAVE::RobotBasePtr> robots;
+    env->GetRobots(robots);
+    OpenRAVE::Transform t = robots.front()->GetActiveManipulator()->GetEndEffectorTransform();
+    loc << t.trans.x, t.trans.y, t.trans.z;
+    return loc;
+}
+
+OpenRAVE::GraphHandlePtr drawConfiguration(OpenRAVE::EnvironmentBasePtr env, Config point_eigen, Color color = Color(), float size = 5)
+{
+    Location point;
+    point = (config_dim > 3) ? getEndeffector(env,point_eigen) : point_eigen.topRows(space_dim);
     float point3D[3];
-    point3D[0] = point_eigen(0);
-    point3D[1] = point_eigen(1);
-    point3D[2] = space_dim < 3 ? 0.1 : point_eigen(2);
+    point3D[0] = point(0);
+    point3D[1] = point(1);
+    point3D[2] = space_dim < 3 ? 0.1 : point(2);
 
     return (env->plot3(point3D, 1, sizeof(point3D[0])*3, size ,color()));
 }
 
-OpenRAVE::GraphHandlePtr drawEdge(OpenRAVE::EnvironmentBasePtr env, Location point1, Location point2, Color color = Color())
+OpenRAVE::GraphHandlePtr drawEdge(OpenRAVE::EnvironmentBasePtr env, Config point_eigen1, Config point_eigen2, Color color = Color())
 {
+    Location point1;
+    point1 = (config_dim > 3) ? getEndeffector(env,point_eigen1) : point_eigen1.topRows(space_dim);
+    Location point2;
+    point2 = (config_dim > 3) ? getEndeffector(env,point_eigen2) : point_eigen2.topRows(space_dim);
+    
     float point3D[5];
     point3D[0] = point1(0);
     point3D[1] = point1(1);

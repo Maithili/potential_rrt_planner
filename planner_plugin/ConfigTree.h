@@ -57,10 +57,10 @@ public:
         {
             nodeptr = nodes_to_check.back();
             nodes_to_check.pop_back();
-            handles.push_back(drawConfiguration(env, nodeptr->getConfiguration().topRows(space_dim), Blue));
+            handles.push_back(drawConfiguration(env, nodeptr->getConfiguration(), Blue));
             if(nodeptr->getParent() != nullptr)
             {
-                handles.push_back(drawEdge(env, nodeptr->getConfiguration().topRows(space_dim), nodeptr->getParent()->getConfiguration().topRows(space_dim)));
+                handles.push_back(drawEdge(env, nodeptr->getConfiguration(), nodeptr->getParent()->getConfiguration()));
             }
 
             auto children = nodeptr->getChildren();

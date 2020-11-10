@@ -53,12 +53,14 @@ Location getPotentialGradientForBox(Location point,
     Eigen::Matrix2d rotation_matrix;
     rotation_matrix << cos(rotation), -sin(rotation), 
                        sin(rotation),  cos(rotation);
-    Location rel = rotation_matrix.transpose() * (point-center);
+    Location rel;
+    rel.topRows(2) = rotation_matrix.transpose() * (point-center).topRows(2);
     
     Location potential_distances;
     potential_distances << std::max(fabs(rel[0]) - extents[0], 0.0) * sign(rel[0]),
                            std::max(fabs(rel[1]) - extents[1], 0.0) * sign(rel[1]);
-    Location gradient = rotation_matrix * potential_distances.normalized();
+    Location gradient = Location::Zero();
+    gradient.topRows(2) = rotation_matrix * potential_distances.normalized().topRows(2);
     gradient *= FlatPotential::calculatePotentialGradient(potential_distances.norm());
     return gradient;
 }

@@ -31,23 +31,31 @@ class PlannerModule : public ModuleBase
 {
 public:
     PlannerModule(EnvironmentBasePtr penv, std::istream& ss) : 
-        ModuleBase(penv), env_(penv), world_potential_(env_), 
-        world_(env_), world_high_dof_(env_), planner_()
+        ModuleBase(penv), env_(penv), world_(env_),
+        world_potential_(env_), world_high_dof_(env_), planner_()
     {
         RegisterCommand("PlannerCommand",boost::bind(&PlannerModule::runCommand,this,_1,_2),
                         "algo 1/2; goal x,y,th ; goalbias 1; done");
+        RegisterCommand("TestCommand",boost::bind(&PlannerModule::runTest,this,_1,_2),"blah");
     }
 
     virtual ~PlannerModule() {}
 
     bool runCommand(std::ostream& sout, std::istream& sinput);
+    
+    bool runTest(std::ostream& sout, std::istream& sinput)
+    { 
+        std::cout<< "Test run for Planner Module"<<std::endl;
+        // std::cout<< "Input : "<<sinput<<std::endl;
+        return true;
+    }
 
     void parseInput(std::istream& sinput);
 
 private:
     EnvironmentBasePtr env_;
-    EuclideanWorldWithPotential world_potential_;
     EuclideanWorld world_;
+    EuclideanWorldWithPotential world_potential_;
     HighDofWorld world_high_dof_;
     RRTPlanner planner_;
     std::vector<double> start_;
@@ -62,13 +70,15 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
     parseInput(sinput);
     // env_ = GetEnv();
     std::vector<double> lower_limit;
-    lower_limit.push_back(-5.0);
-    lower_limit.push_back(-5.0);
+    // lower_limit.push_back(-5.0);
+    // lower_limit.push_back(-5.0);
     std::vector<double> upper_limit;
-    upper_limit.push_back(5.0);
-    upper_limit.push_back(5.0);
-    env_->GetRobot("PR2")->GetActiveDOFValues(start_);
-    // env_->GetRobot("PR2")->GetActiveDOFLimits(lower_limit, upper_limit); 
+    // upper_limit.push_back(5.0);
+    // upper_limit.push_back(5.0);
+    std::vector<OpenRAVE::RobotBasePtr> robots;
+    env_->GetRobots(robots);
+    robots.front()->GetActiveDOFValues(start_);
+    robots.front()->GetActiveDOFLimits(lower_limit, upper_limit); 
 
     // for (int i=0; i<config_dim; ++i)
     // {
@@ -110,8 +120,8 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
     std::cout<<"   Tolerance : "<<node_distance_tolerance<<std::endl;
     std::cout<<"----------------------------------------"<<std::endl;
 
-    viz_objects_permanent.push_back(drawConfiguration(env_, chosen_world->getStart().topRows(space_dim), Green, 10));
-    viz_objects_permanent.push_back(drawConfiguration(env_, chosen_world->getGoal().topRows(space_dim), Green, 10));
+    viz_objects_permanent.push_back(drawConfiguration(env_, chosen_world->getStart(), Green, 10));
+    viz_objects_permanent.push_back(drawConfiguration(env_, chosen_world->getGoal(), Green, 10));
 
     if(planner_.plan(max_iterations))
         path_ = planner_.getPath();

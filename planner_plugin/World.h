@@ -23,7 +23,9 @@ public:
 
     bool isInCollision(Config config)
     {
-        OpenRAVE::RobotBasePtr robot = env_->GetRobot("PR2");
+        std::vector<OpenRAVE::RobotBasePtr> robots;
+        env_->GetRobots(robots);
+        OpenRAVE::RobotBasePtr robot = robots[0];
         std::vector<double> config_vector(config.data(), config.data()+config.rows());
         if (config_dim < 3) config_vector.push_back(0.0);
         robot->SetActiveDOFValues(config_vector);
@@ -65,7 +67,9 @@ class EuclideanWorld : public World
 {
 public:
     EuclideanWorld(OpenRAVE::EnvironmentBasePtr& env): World(env)
-    {};
+    {
+        RAVELOG_INFO("Constructed euclidean world");
+    }
 
     Config stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps)
     {
@@ -80,6 +84,7 @@ public:
     EuclideanWorldWithPotential(OpenRAVE::EnvironmentBasePtr& env): World(env)
     {
         populatePotentials();
+        RAVELOG_INFO("Constructed euclidean world with potentials");
     };
 
     Config stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps)
@@ -121,8 +126,15 @@ private:
         std::vector<OpenRAVE::KinBodyPtr> bodies;
         env_->GetBodies(bodies);
         OpenRAVE::KinBodyPtr obstacles;
+        for (OpenRAVE::KinBodyPtr& b: bodies)
+        {
+            if(b->GetName() == "obstacles");
+                obstacles = b;
+        }
+        if(!obstacles.get())
+            return;
+
         std::vector<OpenRAVE::KinBody::LinkPtr> links;
-        obstacles = env_->GetKinBody("obstacles");
         links = obstacles->GetLinks();
         for (OpenRAVE::KinBody::LinkPtr l : links)
         {
