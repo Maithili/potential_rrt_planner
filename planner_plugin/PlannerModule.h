@@ -2,6 +2,7 @@
 #define PLANNER_MODULE_H
 
 #include <boost/bind.hpp>
+#include <openrave/planningutils.h>
 #include "Planner.h"
 
 using namespace std;
@@ -64,6 +65,33 @@ private:
     std::vector<std::vector<double> > path_;
 };
 
+void moveRobot(std::vector<std::vector<double> > reverse_path, EnvironmentBasePtr& env){
+    OpenRAVE::TrajectoryBasePtr traj = RaveCreateTrajectory(env,""); 
+    std::vector<OpenRAVE::RobotBasePtr> robots;
+    env->GetRobots(robots);
+    OpenRAVE::RobotBasePtr robot = robots[0];
+    traj->Init(robot->GetActiveConfigurationSpecification("linear"));
+    size_t i = 0;
+    std::vector<std::vector<double> >::reverse_iterator rit = reverse_path.rbegin();
+    for (; rit!=reverse_path.rend(); ++rit)
+    {
+        traj->Insert(i++,*rit);
+    }
+    std::vector<dReal> vel;
+    std::vector<dReal> acc;
+    robot->GetActiveDOFVelocityLimits(vel);
+    robot->GetActiveDOFAccelerationLimits(acc);
+    OpenRAVE::planningutils::RetimeAffineTrajectory(traj,vel,acc);
+    
+    std::cout<<"Total time for trajectory : "<<traj->GetDuration()<<std::endl;
+    std::cout<<"DOFs in configuration : "<<robot->GetActiveConfigurationSpecification("linear").GetDOF()<<std::endl;
+    std::cout<<"Number of waypoints in trajectory : "<<traj->GetNumWaypoints()<<std::endl;
+    // traj->serialize(std::cout);
+    robot->GetController()->SetPath(traj);
+    
+    robot->SetMotion(traj);
+}
+
 bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
 {
     int max_iterations = 10000;
@@ -93,6 +121,7 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
         case(1):
             std::cout<<"RRT with potential on robot arm"<<std::endl;
             chosen_world = &world_high_dof_;
+            break;
         case(2): 
             std::cout<<"RRT with potential"<<std::endl;
             chosen_world = &world_potential_;
@@ -123,8 +152,15 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
     viz_objects_permanent.push_back(drawConfiguration(env_, chosen_world->getStart(), Green, 10));
     viz_objects_permanent.push_back(drawConfiguration(env_, chosen_world->getGoal(), Green, 10));
 
+    if(chosen_world->isInCollision(chosen_world->getStart()))
+        std::cout<<"Start configuration in collision!!"<<std::endl;
+    if(chosen_world->isInCollision(chosen_world->getGoal()))
+        std::cout<<"Goal configuration in collision!!"<<std::endl;
+
     if(planner_.plan(max_iterations))
         path_ = planner_.getPath();
+
+    moveRobot(path_, env_);
 
     char temp;
     std::cin>> temp;

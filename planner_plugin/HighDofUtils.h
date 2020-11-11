@@ -10,10 +10,11 @@ std::vector<double> jacobianTransposeApply( boost::multi_array<double,2> matrix 
     std::vector<double> result;
     result.reserve(3);
     float accumulator = 0;
+   //  std::cout<<"jacobian shape "<<matrix.shape()[0]<<" "<<matrix.shape()[0]<<std::endl;
     // for (int i=0;i<result.size();i++)
-    for (int i=0;i<3;i++)
+    for (int i=0;i<matrix.shape()[1];i++)
     {
-        for(int j=0;j<matrix.shape()[0];j++)
+        for(int j=0;j<3;j++)
         {
             accumulator += matrix[j][i]*vector[j];
         }
@@ -21,34 +22,6 @@ std::vector<double> jacobianTransposeApply( boost::multi_array<double,2> matrix 
     accumulator = 0;
     }
     return result;
-}
-
-float sphereDistanceInField(Sdf sdf, Sphere sphere, std::vector<float>& grad, OpenRAVE::EnvironmentBasePtr& env)
-{
-   double dist = potential_params::max_dist;
-   double sphere_center_on_grid[3];
-   cd_mat_memcpy(sphere_center_on_grid, sphere.pos_worldframe, 3, 1);
-   sdf.toGridFrame(sphere_center_on_grid, env);
-
-   /* get sdf value (from interp) */   
-   int err = cd_grid_double_interp(sdf.grid, sphere_center_on_grid, &dist);
-   if (err)
-      return potential_params::max_dist; /* not inside of this distance field at all! */
-   dist -= sphere.radius;
-      
-
-   /* get sdf gradient */
-   /* this will be a unit vector away from closest obs */
-   double* gradient;
-   cd_grid_double_grad(sdf.grid, sphere_center_on_grid, gradient);
-   
-   // TODO(maithili) Should this not be transformed as direction only?
-   sdf.toWorldFrame(gradient, env, true);
-
-   std::vector<float> gradient_out(gradient, gradient+3);
-   grad = gradient_out;
-
-   return dist;
 }
 
 OpenRAVE::AABB KinBodyComputeEnabledAABB(OpenRAVE::KinBodyConstPtr kb)

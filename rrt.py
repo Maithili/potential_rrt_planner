@@ -68,13 +68,16 @@ def setarmenv(e):
     T_palm_ee])
 
     q_goal = m.FindIKSolution(T_ee, 0)
+    q_goal = [2.5,-3.8,0.0,2.0,0.0,0.2,0.0]
     print('q_goal:', q_goal)
     return str(q_goal)[1:-1]
 
 def setarm(r):
     # set starting arm configuration
-    r.SetActiveDOFValues([2.5,-3.8,0.0,2.0,0.0,0.2,0.0])
-    # r.SetActiveDOFValues([ 1.60645868, -0.99563845,  0. ,  2.50930208, -3.14159265, 1.51366363, -0.03566235])
+    # r.SetActiveDOFValues([2.75,-3.8,0.0,2.0,0.0,0.2,0.0])
+    r.SetActiveDOFValues([ 1.60645868, -0.99563845,  0.000 ,  2.50930208, -3.14159265, 1.51366363, -0.03566235])
+    r.GetController().SetDesired(r.GetDOFValues())
+    # waitrobot(r)
 
 def set2denv(e):
     e.Load('scenes/2D.env.xml')
@@ -89,6 +92,8 @@ def set2denv(e):
 
 def set2d(r):
     r.SetActiveDOFValues([-4, -4, 0])
+    r.GetController().SetDesired(r.GetDOFValues())
+    waitrobot(r)
 
 def setenv(e):
     if(PROBLEM == "Planar"): return set2denv(e)
@@ -118,24 +123,23 @@ if __name__ == "__main__":
             seed = random.random()*10000
             goalbias = 50 # in percentage
 
-            raw_input("Press enter to start...")
             start = time.clock()
             algo = 1
             setrobot(robot)
             print("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
+            raw_input("Press enter to start...")
             print mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
             end = time.clock()
             print 'Total time for RRT with potential : ', end - start
 
-            raw_input("Press enter to start...")
-            start = time.clock()
-            algo = 1
-            raw_input("Press enter to start...")
-            setrobot(robot)
-            print("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
-            print mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
-            end = time.clock()
-            print 'Total time for RRT : ', end - start
+            # start = time.clock()
+            # algo = 1
+            # setrobot(robot)
+            # print("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
+            # raw_input("Press enter to start...")
+            # print mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
+            # end = time.clock()
+            # print 'Total time for RRT : ', end - start
         waitrobot(robot)
     except Exception as e:
         print(e)

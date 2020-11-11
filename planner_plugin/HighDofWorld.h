@@ -2,6 +2,7 @@
 #define HIGHDOF_WORLD_H
 
 #include <openrave/environment.h>
+#include <openrave/openrave.h>
 #include "World.h"
 #include "HighDofUtils.h"
 
@@ -14,7 +15,7 @@ public:
       calculateSDFs();
    }
    
-   std::vector<float> getPotentialGradientAt(Sphere sphere, OpenRAVE::EnvironmentBasePtr& env);
+   void getPotentialGradientAt(const Sphere& sphere, std::vector<float>& gradient);
    static float calculatePotentialGradient(float dist);
 
 protected:
@@ -27,7 +28,7 @@ class HighDofWorld : public World
 {
 public:
 
-   HighDofWorld(OpenRAVE::EnvironmentBasePtr& env): World{env}, field_{env}
+   HighDofWorld(OpenRAVE::EnvironmentBasePtr& env): World{env}, field_{env_}
    {
       if (env->GetRobot("BarrettWAM")) robot_spheres_.setBarretWAM(env);
       RAVELOG_INFO("Constructed high DOF world");
@@ -46,21 +47,24 @@ Config HighDofWorld::stepTowards(Config from, Config towards, std::vector<Config
 {
    Config step;
    intermediate_steps.clear();
+   std::cout<<"Step Start"<<std::endl;
    for (int i=0; i<num_baby_steps; ++i)
    {
       updateSphereLocations();
       step = from + getObstacleGradient(from);
       step += (towards-from).normalized() * potential_params::goal_potential_gradient;
+      std::cout<<"baby.."<<step.transpose()<<"---";
       intermediate_steps.push_back(step);
       from = step;
    }
+   std::cout<<"Step"<<std::endl;
    return step;
 }
 
 void HighDofWorld::updateSphereLocations()
 {
    OpenRAVE::RobotBasePtr robot = env_->GetRobot(robot_spheres_.robotname);
-   for (Sphere s: robot_spheres_.list)
+   for (Sphere& s: robot_spheres_.list)
    {
       OpenRAVE::Transform t = robot->GetLink(s.linkname)->GetTransform();
       OpenRAVE::Vector v = t * OpenRAVE::Vector(s.pos_linkframe); /* copies 3 values */
@@ -73,49 +77,69 @@ Config HighDofWorld::getObstacleGradient(Config cfg)
    OpenRAVE::RobotBasePtr robot = env_->GetRobot(robot_spheres_.robotname);
    std::vector<double> cfg_stl(cfg.data(), cfg.data()+cfg.rows());
    robot->SetActiveDOFValues(cfg_stl);
+
    Config net_config_gradient = Config::Zero();
 
-   for (Sphere& s : robot_spheres_.list)
+   for (const Sphere& s : robot_spheres_.list)
    {
-      std::vector<float> gradient = field_.getPotentialGradientAt(s, this->env_);
+      std::vector<float> gradient{0.0, 0.0, 0.0};
+      field_.getPotentialGradientAt(s, gradient);
+      
       boost::multi_array<double,2> jacobian;
       s.getJacobian(jacobian, robot);
+      std::vector<double> grad_vec = jacobianTransposeApply(jacobian, gradient);
       Config config_gradient;
-      copyToEigen(jacobianTransposeApply(jacobian, gradient), config_gradient);
+      copyToEigen(grad_vec, config_gradient);
       net_config_gradient += config_gradient;
    }
 
    return net_config_gradient;
 }
 
-std::vector<float> PotentialField::getPotentialGradientAt(Sphere sphere, OpenRAVE::EnvironmentBasePtr& env)
+void PotentialField::getPotentialGradientAt(const Sphere& sphere, std::vector<float>& gradient)
 {
-   double g[3];
-   std::vector<float> gradient;
-   float distance = sphereDistanceInField(sdf_, sphere, gradient, env);
-   double norm = sqrt(gradient[0]*gradient[0] + gradient[1]*gradient[1] + gradient[2]*gradient[2]);
-   gradient[0] *= calculatePotentialGradient(distance)/norm;
-   gradient[1] *= calculatePotentialGradient(distance)/norm;
-   gradient[2] *= calculatePotentialGradient(distance)/norm;
-   return gradient;
+   double distance = potential_params::max_dist;
+   double sphere_center_on_grid[3];
+   cd_mat_memcpy(sphere_center_on_grid, sphere.pos_worldframe, 3, 1);
+   sdf_.pointToGridFrame(sphere_center_on_grid, env_);
+
+   /* get sdf value (from interp) */   
+   int err = cd_grid_double_interp(sdf_.grid, sphere_center_on_grid, &distance);
+   if (err)
+      return;
+
+   distance -= sphere.radius;
+   /* get sdf gradient */
+   /* this will be a unit vector away from closest obs */
+   double grad[3];
+   grad[0] = 0.0;grad[1]=0.0;grad[2]=0.0;
+   cd_grid_double_grad(sdf_.grid, sphere_center_on_grid, grad);
+   sdf_.pointToWorldFrame(grad, env_);
+
+   double norm = sqrt(grad[0]*grad[0] + grad[1]*grad[1] + grad[2]*grad[2]);
+   float multiplier = calculatePotentialGradient(distance)/norm;
+   gradient[0] = grad[0] * multiplier;
+   gradient[1] = grad[1] * multiplier;
+   gradient[2] = grad[2] * multiplier;
 }
 
 //This is copied from FlatPotential
 float PotentialField::calculatePotentialGradient(float dist)
 {
-    if(dist > potential_params::max_dist)
-        return 0.0F;
-    else
-    {   
-        float factor = potential_params::max_potential_gradient
+
+   if(dist > potential_params::max_dist)
+      return 0.0F;
+   else
+   {   
+      float factor = potential_params::max_potential_gradient
                      * pow(potential_params::min_dist,potential_params::potential_power);
-        if (dist < potential_params::min_dist)
+      if (dist < potential_params::min_dist)
             return potential_params::max_potential_gradient;
-        else
-        {
+      else
+      {
             return (factor/pow(dist,potential_params::potential_power));
-        }
-    }
+      }
+   }
 }
 
 void PotentialField::calculateSDFs()

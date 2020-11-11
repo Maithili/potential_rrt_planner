@@ -47,25 +47,16 @@ struct Sdf
 {
    char kinbody_name[256]; /* the grid frame is AABB of this robot */
    double pose_kinbody[7]; /* pose of the grid w.r.t. the kinbody frame */
-   double pose_gsdf_world[7];
    cd_grid * grid;
    /* from world_pt to gsdf_pt */
-   void toGridFrame(double* pose, OpenRAVE::EnvironmentBasePtr& env, bool only_direction = false)
+   void poseToGridFrame(double* pose, OpenRAVE::EnvironmentBasePtr& env) const
    {
       OpenRAVE::Transform t = env->GetKinBody(this->kinbody_name)->GetTransform();
       double pose_world_gsdf[7];
-      if(only_direction)
-      {
-        pose_world_gsdf[0] = 0.0;
-        pose_world_gsdf[1] = 0.0;
-        pose_world_gsdf[2] = 0.0;
-      }
-      else
-      {
-        pose_world_gsdf[0] = t.trans.x;
-        pose_world_gsdf[1] = t.trans.y;
-        pose_world_gsdf[2] = t.trans.z;
-      }
+      double pose_gsdf_world[7];
+      pose_world_gsdf[0] = t.trans.x;
+      pose_world_gsdf[1] = t.trans.y;
+      pose_world_gsdf[2] = t.trans.z;
       pose_world_gsdf[3] = t.rot.y;
       pose_world_gsdf[4] = t.rot.z;
       pose_world_gsdf[5] = t.rot.w;
@@ -74,22 +65,28 @@ struct Sdf
       cd_kin_pose_invert(pose_world_gsdf, pose_gsdf_world);
       cd_kin_pose_compose(pose_gsdf_world, pose, pose); /* world_pt to gsdf_pt */
    }
-   void toWorldFrame(double* pose, OpenRAVE::EnvironmentBasePtr& env, bool only_direction = false)
+   void pointToGridFrame(double* point, OpenRAVE::EnvironmentBasePtr& env) const
+   {
+      double pose[7];
+      pose[0] = point[0];
+      pose[1] = point[1];
+      pose[2] = point[2];
+      pose[3] = 0.0;
+      pose[4] = 0.0;
+      pose[5] = 0.0;
+      pose[6] = 0.0;
+      poseToGridFrame(pose, env);
+      point[0] = pose[0];
+      point[1] = pose[1];
+      point[2] = pose[2];
+   }
+   void poseToWorldFrame(double* pose, OpenRAVE::EnvironmentBasePtr& env) const
    {
       OpenRAVE::Transform t = env->GetKinBody(this->kinbody_name)->GetTransform();
       double pose_world_gsdf[7];
-      if(only_direction)
-      {
-        pose_world_gsdf[0] = 0.0;
-        pose_world_gsdf[1] = 0.0;
-        pose_world_gsdf[2] = 0.0;
-      }
-      else
-      {
-        pose_world_gsdf[0] = t.trans.x;
-        pose_world_gsdf[1] = t.trans.y;
-        pose_world_gsdf[2] = t.trans.z;
-      }
+      pose_world_gsdf[0] = t.trans.x;
+      pose_world_gsdf[1] = t.trans.y;
+      pose_world_gsdf[2] = t.trans.z;
       pose_world_gsdf[3] = t.rot.y;
       pose_world_gsdf[4] = t.rot.z;
       pose_world_gsdf[5] = t.rot.w;
@@ -97,7 +94,22 @@ struct Sdf
       cd_kin_pose_compose(pose_world_gsdf, this->pose_kinbody, pose_world_gsdf);
       cd_kin_pose_compose(pose_world_gsdf, pose, pose); /* gsdf_pt to world_pt */
    }
-   void originInWorld(double* pose, OpenRAVE::EnvironmentBasePtr& env)
+   void pointToWorldFrame(double* point, OpenRAVE::EnvironmentBasePtr& env) const
+   {
+      double pose[7];
+      pose[0] = point[0];
+      pose[1] = point[1];
+      pose[2] = point[2];
+      pose[3] = 0.0;
+      pose[4] = 0.0;
+      pose[5] = 0.0;
+      pose[6] = 0.0;
+      poseToWorldFrame(pose, env);
+      point[0] = pose[0];
+      point[1] = pose[1];
+      point[2] = pose[2];
+   }
+   void originInWorld(double* pose, OpenRAVE::EnvironmentBasePtr& env) const
    {
        OpenRAVE::Transform t = env->GetKinBody(this->kinbody_name)->GetTransform();
        pose[0] = t.trans.x;
@@ -118,10 +130,10 @@ struct Sphere
     double pos_linkframe[3];
     double pos_worldframe[3];
     double radius;
-    void getJacobian(boost::multi_array<double,2>& jacobian_out, OpenRAVE::RobotBasePtr& robot)
+    void getJacobian(boost::multi_array<double,2>& jacobian_out, OpenRAVE::RobotBasePtr& robot) const
     {
         OpenRAVE::geometry::RaveVector<double> pose(pos_linkframe[0], pos_linkframe[1], pos_linkframe[2]);
-        robot->CalculateJacobian(this->linkindex, pose, jacobian_out);
+        robot->CalculateActiveJacobian(this->linkindex, pose, jacobian_out);
     }
 };
 
@@ -151,7 +163,7 @@ struct Spheres
         strcpy( s.linkname, "Finger1-2") ; s.pos_linkframe[0] = 0.05; s.pos_linkframe[1] =  0.0 ; s.pos_linkframe[2] = 0.0  ; s.radius=0.04; this->list.push_back(s);
         strcpy( s.linkname, "Finger2-2") ; s.pos_linkframe[0] = 0.05; s.pos_linkframe[1] =  0.0 ; s.pos_linkframe[2] = 0.0  ; s.radius=0.04; this->list.push_back(s);
         //  TODO(maithili)  : set linkindex
-        for (Sphere temp : this->list)
+        for (Sphere& temp : this->list)
         {
             temp.linkindex = env->GetRobot(robotname)->GetLink(temp.linkname)->GetIndex();
         }
@@ -260,7 +272,7 @@ OpenRAVE::GraphHandlePtr drawEdge(OpenRAVE::EnvironmentBasePtr env, Config point
     Location point2;
     point2 = (config_dim > 3) ? getEndeffector(env,point_eigen2) : point_eigen2.topRows(space_dim);
     
-    float point3D[5];
+    float point3D[6];
     point3D[0] = point1(0);
     point3D[1] = point1(1);
     point3D[2] = space_dim < 3 ? 0.1 : point1(2);
@@ -284,6 +296,8 @@ void copyToVector(const Eigen::Matrix<double, S, 1>& eigen, std::vector<double>&
 template<int S>
 void copyToEigen(const std::vector<double>& vector, Eigen::Matrix<double, S, 1>& eigen)
 {
+    // if (vector.size() != S)
+    //     RAVELOG_WARN("Trying to copy vector to eigen with inappropriate dimensions");
     for (int i=0;i<S;++i)
         eigen[i]=vector[i];
 }
