@@ -35,17 +35,26 @@ public:
 
     Config getRandomConfig()
     {
-        Config random_config(start_location_);
+        Config random_config = Config::Zero();
         for (int idx = 0; idx<config_dim; ++idx)
         {
             float f = static_cast<float>(rand())/static_cast<float>(RAND_MAX);
-            random_config(idx,0) = ((1-f) * lower_limits_(idx,0)) + (f * (upper_limits_(idx,0)));
+            random_config(idx,0) = ((1-f) * lower_limits_[idx]) + (f * (upper_limits_[idx]));
         }
         potential_params::goal_potential_gradient = potential_params::potential_gradient_rand;
         return random_config;
     }
 
-    Config getRandomConfigNotInCollision();
+    Config getRandomConfigNotInCollision()
+    {
+        Config random_config;
+        do
+        {
+            random_config = getRandomConfig();
+        }
+        while(isInCollision(random_config));
+        return random_config;
+    }
 
     virtual Config stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps) = 0;
 
@@ -56,6 +65,18 @@ public:
     
     OpenRAVE::EnvironmentBasePtr env_;
     
+    bool configInLimits(Config cfg)
+    {
+        for(int i=0; i<config_dim; ++i)
+        {
+            if(cfg[i] > upper_limits_[i])
+                return false;
+            if(cfg[i] < lower_limits_[i])
+                return false;
+        }
+        return true;
+    }
+
 protected:
     Config start_location_;
     Config goal_location_;

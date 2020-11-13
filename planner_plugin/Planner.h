@@ -63,7 +63,7 @@ bool RRTPlanner::plan(int max_iterations)
         // search_tree_.draw(world_ptr_->env_);
         potential_params::goal_potential_gradient = potential_params::potential_gradient_goal;
         Config connect_goal = reachToGoal()? world_ptr_->getGoal() 
-                                : world_ptr_->getRandomConfig();
+                                : world_ptr_->getRandomConfigNotInCollision();
         ConnectResult result = connectTo(connect_goal);
         if (result == ConnectResult::ReachedGoal)
         {
@@ -137,25 +137,24 @@ std::vector<std::vector<double> > RRTPlanner::getPath() const
     std::shared_ptr<Node> current_node = goal_node_;
     while (current_node->getConfiguration() != world_ptr_->getStart())
     {
-        Config config = current_node->getConfiguration();
         std::vector<Config> steps = current_node->getIntermediateSteps();
-        // viz_objects.push_back(drawConfiguration(world_ptr_->env_, config, Green, 3));
-        std::vector<double> config_stl(config.data(), config.data()+config.rows());
-        path.push_back(config_stl);
-        if(current_node->getParent() == nullptr)
-            break;
-        Config n1 = current_node->getParent()->getConfiguration();
-        viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, n1, Green, 5));
-        for (auto s : steps)
-        {        
+        std::reverse(steps.begin(), steps.end());
+        Config n1 = current_node->getConfiguration();
+        for(auto& s : steps)
+        {
             Config n2 = s;
             viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, n2, Green, 3));
             viz_objects_permanent.push_back(drawEdge(world_ptr_->env_, n2, n1, Green));
             n1 = n2;
+            std::vector<double> config_stl;
+            copyToVector(s, config_stl);
+            path.push_back(config_stl);
         }
+        if(current_node->getParent() == nullptr)
+            break;
         current_node = current_node->getParent();
     }
-
+    std::reverse(path.begin(), path.end());
     return path;
 }
 

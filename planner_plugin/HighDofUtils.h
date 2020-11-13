@@ -5,13 +5,9 @@
 
 std::vector<double> jacobianTransposeApply( boost::multi_array<double,2> matrix , std::vector<float> vector)
 {
-    // MATH_ASSERT(matrix.dimensionality == 2);
-    // MATH_ASSERT(matrix.shape()[0] == vector.size());
     std::vector<double> result;
     result.reserve(3);
     float accumulator = 0;
-   //  std::cout<<"jacobian shape "<<matrix.shape()[0]<<" "<<matrix.shape()[0]<<std::endl;
-    // for (int i=0;i<result.size();i++)
     for (int i=0;i<matrix.shape()[1];i++)
     {
         for(int j=0;j<3;j++)

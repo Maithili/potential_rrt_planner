@@ -65,17 +65,16 @@ private:
     std::vector<std::vector<double> > path_;
 };
 
-void moveRobot(std::vector<std::vector<double> > reverse_path, EnvironmentBasePtr& env){
+void moveRobot(std::vector<std::vector<double> > path, EnvironmentBasePtr& env, std::ostream& sout){
     OpenRAVE::TrajectoryBasePtr traj = RaveCreateTrajectory(env,""); 
     std::vector<OpenRAVE::RobotBasePtr> robots;
     env->GetRobots(robots);
     OpenRAVE::RobotBasePtr robot = robots[0];
     traj->Init(robot->GetActiveConfigurationSpecification("linear"));
     size_t i = 0;
-    std::vector<std::vector<double> >::reverse_iterator rit = reverse_path.rbegin();
-    for (; rit!=reverse_path.rend(); ++rit)
+    for (auto it = path.begin(); it!=path.end(); ++it)
     {
-        traj->Insert(i++,*rit);
+        traj->Insert(i++,*it);
     }
     std::vector<dReal> vel;
     std::vector<dReal> acc;
@@ -86,10 +85,10 @@ void moveRobot(std::vector<std::vector<double> > reverse_path, EnvironmentBasePt
     std::cout<<"Total time for trajectory : "<<traj->GetDuration()<<std::endl;
     std::cout<<"DOFs in configuration : "<<robot->GetActiveConfigurationSpecification("linear").GetDOF()<<std::endl;
     std::cout<<"Number of waypoints in trajectory : "<<traj->GetNumWaypoints()<<std::endl;
-    // traj->serialize(std::cout);
+
     robot->GetController()->SetPath(traj);
-    
     robot->SetMotion(traj);
+    traj->serialize(sout);
 }
 
 bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
@@ -98,15 +97,22 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
     parseInput(sinput);
     // env_ = GetEnv();
     std::vector<double> lower_limit;
-    // lower_limit.push_back(-5.0);
-    // lower_limit.push_back(-5.0);
     std::vector<double> upper_limit;
-    // upper_limit.push_back(5.0);
-    // upper_limit.push_back(5.0);
+    
+    #ifdef PLANAR
+    lower_limit.push_back(-5.0);
+    lower_limit.push_back(-5.0);
+    upper_limit.push_back(5.0);
+    upper_limit.push_back(5.0);
+    #endif
+
     std::vector<OpenRAVE::RobotBasePtr> robots;
     env_->GetRobots(robots);
     robots.front()->GetActiveDOFValues(start_);
+    
+    #ifdef ARM
     robots.front()->GetActiveDOFLimits(lower_limit, upper_limit); 
+    #endif
 
     // for (int i=0; i<config_dim; ++i)
     // {
@@ -115,6 +121,7 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
     //     upper_limit[i] = max_config_for_search[i] < upper_limit[i] ?
     //                      max_config_for_search[i] : upper_limit[i];
     // }
+
     World* chosen_world = nullptr;
     switch(algo_)
     {
@@ -153,14 +160,20 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
     viz_objects_permanent.push_back(drawConfiguration(env_, chosen_world->getGoal(), Green, 10));
 
     if(chosen_world->isInCollision(chosen_world->getStart()))
+    {
         std::cout<<"Start configuration in collision!!"<<std::endl;
+        return false;
+    }
     if(chosen_world->isInCollision(chosen_world->getGoal()))
+    {
         std::cout<<"Goal configuration in collision!!"<<std::endl;
+        return false;
+    }
 
     if(planner_.plan(max_iterations))
         path_ = planner_.getPath();
 
-    moveRobot(path_, env_);
+    moveRobot(path_, env_, sout);
 
     char temp;
     std::cin>> temp;

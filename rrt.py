@@ -6,8 +6,8 @@ import sys
 import scipy
 import random
 
-# PROBLEM = "Planar"
-PROBLEM = "Arm"
+PROBLEM = "Planar"
+# PROBLEM = "Arm"
 
 if not __openravepy_build_doc__:
     from openravepy import *
@@ -15,6 +15,7 @@ if not __openravepy_build_doc__:
 
 def waitrobot(robot):
     """busy wait for robot completion"""
+    print("wait robot")
     while not robot.GetController().IsDone():
         time.sleep(0.01)
 
@@ -66,16 +67,16 @@ def setarmenv(e):
     mug.GetTransform(),
     numpy.linalg.inv(T_mug_palm),
     T_palm_ee])
-
     q_goal = m.FindIKSolution(T_ee, 0)
-    q_goal = [2.5,-3.8,0.0,2.0,0.0,0.2,0.0]
+    q_goal = [i for i in q_goal]
     print('q_goal:', q_goal)
     return str(q_goal)[1:-1]
 
 def setarm(r):
     # set starting arm configuration
     # r.SetActiveDOFValues([2.75,-3.8,0.0,2.0,0.0,0.2,0.0])
-    r.SetActiveDOFValues([ 1.60645868, -0.99563845,  0.000 ,  2.50930208, -3.14159265, 1.51366363, -0.03566235])
+    # r.SetActiveDOFValues([ 1.60645868, -0.99563845,  0.000 ,  2.50930208, -3.14159265, 1.51366363, -0.03566235])
+    r.SetActiveDOFValues([1.60645868, -0.99563845, 0.00, 1.7930208, -3.14159265, 1.71366363, -0.23566235])
     r.GetController().SetDesired(r.GetDOFValues())
     # waitrobot(r)
 
@@ -87,21 +88,27 @@ def set2denv(e):
     r.SetActiveDOFs([],DOFAffine.X|DOFAffine.Y|DOFAffine.RotationAxis,[0,0,1])
     q_goal = [4,4,pi/4]
     r.GetController().SetDesired(r.GetDOFValues())
-    waitrobot(r)
+    # waitrobot(r)
     return str(q_goal)[1:-1]
 
 def set2d(r):
     r.SetActiveDOFValues([-4, -4, 0])
     r.GetController().SetDesired(r.GetDOFValues())
-    waitrobot(r)
+    time.sleep(0.1)
+    # waitrobot(r)
 
 def setenv(e):
     if(PROBLEM == "Planar"): return set2denv(e)
     if(PROBLEM == "Arm"): return setarmenv(e)
+    print("Updating published")
+    e.UpdatePublishedBodies()
+    time.sleep(0.1)
 
 def setrobot(r):
     if(PROBLEM == "Planar"): set2d(r)
     if(PROBLEM == "Arm"): setarm(r)
+    print("Updating published")
+    time.sleep(0.1)
 
 
 if __name__ == "__main__":
@@ -123,24 +130,26 @@ if __name__ == "__main__":
             seed = random.random()*10000
             goalbias = 50 # in percentage
 
-            start = time.clock()
-            algo = 1
+            if(PROBLEM == "Planar") : algo = 2
+            if(PROBLEM == "Arm") : algo = 1
             setrobot(robot)
+            env.UpdatePublishedBodies()
             print("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
             raw_input("Press enter to start...")
-            print mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
+            start = time.clock()
+            traj_pot = mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
             end = time.clock()
             print 'Total time for RRT with potential : ', end - start
 
-            # start = time.clock()
-            # algo = 1
-            # setrobot(robot)
-            # print("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
-            # raw_input("Press enter to start...")
-            # print mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
-            # end = time.clock()
-            # print 'Total time for RRT : ', end - start
-        waitrobot(robot)
+            if(PROBLEM == "Planar") : algo = 2
+            else: raise
+            setrobot(robot)
+            print("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
+            raw_input("Press enter to start...")
+            start = time.clock()
+            traj_rrt = mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
+            end = time.clock()
+            print 'Total time for RRT : ', end - start
     except Exception as e:
         print(e)
         print 'Error on line {}'.format(sys.exc_info()[-1].tb_lineno)

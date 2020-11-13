@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <openrave/plugin.h>
+#include <openrave/openrave.h>
 
 extern "C" {
 #include <gsl/gsl_rng.h>
@@ -18,20 +19,17 @@ extern "C" {
 #include "libcd/util_shparse.h"
 }
 
+#define PLANAR
+// #define ARM
+
 #define HUGE_VAL 1000.0
 
-static constexpr int config_dim = 7;
-static constexpr int space_dim = 3;
-
-using Config = Eigen::Matrix<double,config_dim,1>;
-using Location = Eigen::Matrix<double,space_dim,1>;
-
+#ifdef PLANAR
 static constexpr float step_size = 0.2;
 static constexpr float inner_step_size = step_size;
 static constexpr int num_baby_steps = 5;
 static constexpr float outer_step_size = step_size*static_cast<float>(num_baby_steps);
 static constexpr float node_distance_tolerance = step_size * 1.5;
-
 namespace potential_params
 {
     const float max_dist                = 3.5F;
@@ -42,6 +40,32 @@ namespace potential_params
     const float potential_gradient_rand = 8.0F;
     float goal_potential_gradient       = potential_gradient_goal;
 }
+static constexpr int config_dim = 3;
+static constexpr int space_dim = 2;
+#endif
+
+#ifdef ARM
+static constexpr float step_size = 0.5;
+static constexpr float inner_step_size = step_size;
+static constexpr int num_baby_steps = 5;
+static constexpr float outer_step_size = step_size*static_cast<float>(num_baby_steps);
+static constexpr float node_distance_tolerance = step_size * 5;
+namespace potential_params
+{
+    const float max_dist                = 1.5F;
+    const float min_dist                = 0.0F;
+    const float potential_power         = 1.5F;
+    const float max_potential_gradient  = 10.0F;
+    const float potential_gradient_goal = 15.0F;
+    const float potential_gradient_rand = 8.0F;
+    float goal_potential_gradient       = potential_gradient_goal;
+}
+static constexpr int config_dim = 7;
+static constexpr int space_dim = 3;
+#endif
+
+using Config = Eigen::Matrix<double,config_dim,1>;
+using Location = Eigen::Matrix<double,space_dim,1>;
 
 struct Sdf
 {
@@ -243,11 +267,34 @@ private:
     std::vector<std::shared_ptr<Node> >  children_;
 };
 
+template<int S>
+void copyToVector(const Eigen::Matrix<double, S, 1>& eigen, std::vector<double>& vector)
+{
+    vector.clear();
+    vector.reserve(S);
+    for (int i=0;i<S;++i)
+        vector.push_back(eigen[i]);
+}
+
+template<int S>
+void copyToEigen(const std::vector<double>& vector, Eigen::Matrix<double, S, 1>& eigen)
+{
+    if (vector.size() != S)
+        RAVELOG_WARN("Trying to copy vector to eigen with inappropriate dimensions");
+    for (int i=0;i<S;++i)
+        eigen[i]=vector[i];
+}
+
 Location getEndeffector(OpenRAVE::EnvironmentBasePtr env, Config angles)
 {
     Location loc = Location::Zero();
     std::vector<OpenRAVE::RobotBasePtr> robots;
     env->GetRobots(robots);
+    OpenRAVE::RobotBasePtr robot = robots.front();
+    OpenRAVE::RobotBase::RobotStateSaver save_state(robot);
+    std::vector<double> config;
+    copyToVector(angles, config);
+    robot->SetActiveDOFValues(config);
     OpenRAVE::Transform t = robots.front()->GetActiveManipulator()->GetEndEffectorTransform();
     loc << t.trans.x, t.trans.y, t.trans.z;
     return loc;
@@ -284,22 +331,32 @@ OpenRAVE::GraphHandlePtr drawEdge(OpenRAVE::EnvironmentBasePtr env, Config point
     return (env->drawlinestrip(&point3D[0], 2, sizeof(point3D[0])*3, 0.5, color()));
 }
 
-template<int S>
-void copyToVector(const Eigen::Matrix<double, S, 1>& eigen, std::vector<double>& vector)
+void showRobot(OpenRAVE::EnvironmentBasePtr env)
 {
-    vector.clear();
-    vector.reserve(S);
-    for (int i=0;i<S;++i)
-        vector.push_back(eigen[i]);
+    std::vector<OpenRAVE::RobotBasePtr> robots;
+    env->GetRobots(robots);
+    OpenRAVE::RobotBasePtr robot = robots.front();
+    OpenRAVE::RobotBase::RobotStateSaver save_state(robot);
+    std::vector<double> config_vector;
+    robot->GetDOFValues(config_vector);
+    robot->GetController()->SetDesired(config_vector);
+    env->UpdatePublishedBodies();
+    sleep(0.1);
 }
 
-template<int S>
-void copyToEigen(const std::vector<double>& vector, Eigen::Matrix<double, S, 1>& eigen)
+void showRobotAt(Config cfg, OpenRAVE::EnvironmentBasePtr env)
 {
-    // if (vector.size() != S)
-    //     RAVELOG_WARN("Trying to copy vector to eigen with inappropriate dimensions");
-    for (int i=0;i<S;++i)
-        eigen[i]=vector[i];
+    std::vector<OpenRAVE::RobotBasePtr> robots;
+    env->GetRobots(robots);
+    OpenRAVE::RobotBasePtr robot = robots.front();
+    OpenRAVE::RobotBase::RobotStateSaver save_state(robot);
+    std::vector<double> config_vector;
+    copyToVector(cfg, config_vector);
+    robot->SetActiveDOFValues(config_vector);
+    robot->GetDOFValues(config_vector);
+    robot->GetController()->SetDesired(config_vector);
+    env->UpdatePublishedBodies();
+    sleep(0.1);
 }
 
 #endif

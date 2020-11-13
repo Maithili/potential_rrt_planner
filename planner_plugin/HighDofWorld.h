@@ -38,7 +38,7 @@ public:
 
 private:
    Config getObstacleGradient(Config cfg);
-   void updateSphereLocations();
+   void updateSphereLocations(Config cfg);
    PotentialField field_;
    Spheres robot_spheres_;
 };
@@ -46,24 +46,31 @@ private:
 Config HighDofWorld::stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps)
 {
    Config step;
+   // std::cout<<"Stepping from : "<<from.transpose()<<std::endl;
+   // std::cout<<"Stepping to : "<<towards.transpose()<<std::endl;
    intermediate_steps.clear();
-   std::cout<<"Step Start"<<std::endl;
    for (int i=0; i<num_baby_steps; ++i)
    {
-      updateSphereLocations();
-      step = from + getObstacleGradient(from);
+      updateSphereLocations(from);
+      showRobot(env_);
+      step = getObstacleGradient(from);
       step += (towards-from).normalized() * potential_params::goal_potential_gradient;
-      std::cout<<"baby.."<<step.transpose()<<"---";
+      step.normalize();
+      if(!configInLimits(step+from))
+         break;
       intermediate_steps.push_back(step);
       from = step;
    }
-   std::cout<<"Step"<<std::endl;
-   return step;
+   showRobotAt(from, env_);
+   return from;
 }
 
-void HighDofWorld::updateSphereLocations()
+void HighDofWorld::updateSphereLocations(Config cfg)
 {
    OpenRAVE::RobotBasePtr robot = env_->GetRobot(robot_spheres_.robotname);
+   std::vector<double> config_vector;
+   copyToVector(cfg, config_vector);
+   robot->SetActiveDOFValues(config_vector);
    for (Sphere& s: robot_spheres_.list)
    {
       OpenRAVE::Transform t = robot->GetLink(s.linkname)->GetTransform();

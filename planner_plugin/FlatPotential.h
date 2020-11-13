@@ -60,7 +60,7 @@ Location getPotentialGradientForBox(Location point,
     potential_distances << std::max(fabs(rel[0]) - extents[0], 0.0) * sign(rel[0]),
                            std::max(fabs(rel[1]) - extents[1], 0.0) * sign(rel[1]);
     Location gradient = Location::Zero();
-    gradient.topRows(2) = rotation_matrix * potential_distances.normalized().topRows(2);
+    gradient.topRows(2) = rotation_matrix * potential_distances.topRows(2).normalized();
     gradient *= FlatPotential::calculatePotentialGradient(potential_distances.norm());
     return gradient;
 }
