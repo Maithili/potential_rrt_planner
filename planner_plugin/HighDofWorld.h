@@ -16,7 +16,6 @@ public:
    }
    
    void getPotentialGradientAt(const Sphere& sphere, std::vector<float>& gradient);
-   static float calculatePotentialGradient(float dist);
 
 protected:
    void calculateSDFs();
@@ -128,25 +127,6 @@ void PotentialField::getPotentialGradientAt(const Sphere& sphere, std::vector<fl
    gradient[0] = grad[0] * multiplier;
    gradient[1] = grad[1] * multiplier;
    gradient[2] = grad[2] * multiplier;
-}
-
-//This is copied from FlatPotential
-float PotentialField::calculatePotentialGradient(float dist)
-{
-
-   if(dist > potential_params::max_dist)
-      return 0.0F;
-   else
-   {   
-      float factor = potential_params::max_potential_gradient
-                     * pow(potential_params::min_dist,potential_params::potential_power);
-      if (dist < potential_params::min_dist)
-            return potential_params::max_potential_gradient;
-      else
-      {
-            return (factor/pow(dist,potential_params::potential_power));
-      }
-   }
 }
 
 void PotentialField::calculateSDFs()

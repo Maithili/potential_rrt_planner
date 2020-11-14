@@ -3,7 +3,7 @@
 
 #include <openrave/environment.h>
 
-#include "FlatPotential.h"
+#include "PrecomputedPotential.h"
 
 class World
 {
@@ -102,9 +102,9 @@ public:
 class EuclideanWorldWithPotential : public World
 {
 public:
-    EuclideanWorldWithPotential(OpenRAVE::EnvironmentBasePtr& env): World(env)
+    EuclideanWorldWithPotential(OpenRAVE::EnvironmentBasePtr& env): 
+    World(env), potential_(env, 12.0, 12.0, 0.05)
     {
-        populatePotentials();
         RAVELOG_INFO("Constructed euclidean world with potentials");
     };
 
@@ -126,7 +126,7 @@ private:
     Config smallStep(Config from, Config towards)
     {
         Config goal_gradient = (towards - from).normalized();
-        goal_gradient *= FlatPotential::calculateGoalPotentialGradient();
+        goal_gradient *= calculateGoalPotentialGradient();
         Config obstacle_gradient = getObstacleGradient(from);
         Config step = (goal_gradient + obstacle_gradient).normalized() * inner_step_size;
         return (from + step);
@@ -135,45 +135,11 @@ private:
     Config getObstacleGradient(Config q)
     {
         Config gradient = Config::Zero();
-        for (FlatPotential obstacle : obstacle_geometries_)
-        {
-            gradient.topRows(space_dim) += obstacle.getPotentialGradientAt(q.topRows(space_dim));
-        }
+        gradient.topRows(space_dim) = potential_.getPotentialGradientAt(q.topRows(space_dim));
         return gradient;
     }
 
-    void populatePotentials()
-    {
-        std::vector<OpenRAVE::KinBodyPtr> bodies;
-        env_->GetBodies(bodies);
-        OpenRAVE::KinBodyPtr obstacles;
-        for (OpenRAVE::KinBodyPtr& b: bodies)
-        {
-            if(b->GetName() == "obstacles");
-                obstacles = b;
-        }
-        if(!obstacles.get())
-            return;
-
-        std::vector<OpenRAVE::KinBody::LinkPtr> links;
-        links = obstacles->GetLinks();
-        for (OpenRAVE::KinBody::LinkPtr l : links)
-        {
-            obstacle_geometries_.push_back(FlatPotential(l->GetGeometries()));
-        }
-    }
-
-    std::vector<FlatPotential> obstacle_geometries_;
-};
-
-class ConfigWorld : public World
-{
-
-};
-
-class ConfigWorldWithPotential : public World
-{
-
+    PrecomputedPotential potential_;
 };
 
 #endif

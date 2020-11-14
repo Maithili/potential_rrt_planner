@@ -1,5 +1,5 @@
-#ifndef POTENTIAL_H
-#define POTENTIAL_H
+#ifndef FLAT_POTENTIAL_H
+#define FLAT_POTENTIAL_H
 
 #include <Eigen/Dense>
 
@@ -9,12 +9,13 @@ class FlatPotential
 {
 public:
 
+    FlatPotential()
+    {}
+
     FlatPotential(std::vector<OpenRAVE::KinBody::Link::GeometryPtr> geom): geometries_{geom}
     {}
     
     Location getPotentialGradientAt(Location x);
-    static float calculateGoalPotentialGradient();
-    static float calculatePotentialGradient(float dist);
 
 protected:
 
@@ -36,7 +37,7 @@ Location getPotentialGradientForCircle(Location x, double radius, OpenRAVE::geom
     float distance = (x-center).norm() - radius;
 
     Location gradient = (x-center).normalized();
-    gradient *= FlatPotential::calculatePotentialGradient(distance);
+    gradient *= calculatePotentialGradient(distance);
 
     return gradient;
 }
@@ -61,7 +62,7 @@ Location getPotentialGradientForBox(Location point,
                            std::max(fabs(rel[1]) - extents[1], 0.0) * sign(rel[1]);
     Location gradient = Location::Zero();
     gradient.topRows(2) = rotation_matrix * potential_distances.topRows(2).normalized();
-    gradient *= FlatPotential::calculatePotentialGradient(potential_distances.norm());
+    gradient *= calculatePotentialGradient(potential_distances.norm());
     return gradient;
 }
 }
@@ -69,45 +70,27 @@ Location getPotentialGradientForBox(Location point,
 Location FlatPotential::getPotentialGradientAt(Location x)
 {
     Location gradient = Location::Zero();
+    Location sum_gradient = Location::Zero();
     for(auto geomtry : geometries_)
     {
         Location geom_grad = Location::Zero();
         if( (geomtry->GetType() == OpenRAVE::GT_Cylinder) || (geomtry->GetType() == OpenRAVE::GT_Sphere))
         {
             geom_grad = getPotentialGradientForCircle(x, geomtry->GetCylinderRadius(), geomtry->GetTransform().trans);
+            sum_gradient += geom_grad;
         }
         else if( (geomtry->GetType() == OpenRAVE::GT_Box))
         {
             float angle = sqrt(OpenRAVE::geometry::axisAngleFromQuat(geomtry->GetTransform().rot).lengthsqr3());
             geom_grad = getPotentialGradientForBox(x, geomtry->GetBoxExtents(), geomtry->GetTransform().trans, angle);
+            sum_gradient += geom_grad;
         }
         if (geom_grad.norm() > gradient.norm())
             gradient = geom_grad;
     }
 
-    return gradient;
+    return sum_gradient;
+    // return gradient;
 }
 
-float FlatPotential::calculateGoalPotentialGradient()
-{
-    return potential_params::goal_potential_gradient;
-}
-
-float FlatPotential::calculatePotentialGradient(float dist)
-{
-    if(dist > potential_params::max_dist)
-        return 0.0F;
-    else
-    {   
-        float factor = potential_params::max_potential_gradient
-                     * pow(potential_params::min_dist,potential_params::potential_power);
-        if (dist < potential_params::min_dist)
-            return potential_params::max_potential_gradient;
-        else
-        {
-            return (factor/pow(dist,potential_params::potential_power));
-        }
-    }
-}
-
-#endif
+#endif  // FLAT_POTENTIAL_H

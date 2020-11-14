@@ -67,6 +67,28 @@ static constexpr int space_dim = 3;
 using Config = Eigen::Matrix<double,config_dim,1>;
 using Location = Eigen::Matrix<double,space_dim,1>;
 
+float calculateGoalPotentialGradient()
+{
+    return potential_params::goal_potential_gradient;
+}
+
+float calculatePotentialGradient(float dist)
+{
+    if(dist > potential_params::max_dist)
+        return 0.0F;
+    else
+    {   
+        float factor = potential_params::max_potential_gradient
+                     * pow(potential_params::min_dist,potential_params::potential_power);
+        if (dist < potential_params::min_dist)
+            return potential_params::max_potential_gradient;
+        else
+        {
+            return (factor/pow(dist,potential_params::potential_power));
+        }
+    }
+}
+
 struct Sdf
 {
    char kinbody_name[256]; /* the grid frame is AABB of this robot */
