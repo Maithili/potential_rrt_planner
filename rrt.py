@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import matplotlib.pyplot as plt
 
 import time
 import openravepy
@@ -8,6 +9,8 @@ import random
 
 PROBLEM = "Planar"
 # PROBLEM = "Arm"
+
+interactive = True
 
 if not __openravepy_build_doc__:
     from openravepy import *
@@ -26,6 +29,16 @@ def tuckarms(env,robot):
         robot.SetActiveDOFValues([1.29023451,-2.32099996,-0.69800004,1.27843491,-2.32100002,-0.69799996])
         robot.GetController().SetDesired(robot.GetDOFValues())
     waitrobot(robot)
+
+def getcollisionfraction(env,robot):
+    collisions = 0
+    non_collisions = 0
+    for x in range(-50,50):
+        for y in range(-50,50):
+            robot.SetActiveDOFValues([float(x)/10, float(y)/10, random.random()*3.14])
+            if (env.CheckCollision(robot)) : collisions = collisions + 1
+            else : non_collisions = non_collisions + 1
+    return (float(collisions)/float(collisions+non_collisions))
 
 def setarmenv(e):
     # table
@@ -83,8 +96,8 @@ def setarm(r):
 def set2denv(e):
     e.Load('scenes/2D.env.xml')
     time.sleep(0.1)
-    r = env.GetRobots()[0]
-    tuckarms(env,r)
+    r = e.GetRobots()[0]
+    tuckarms(e,r)
     r.SetActiveDOFs([],DOFAffine.X|DOFAffine.Y|DOFAffine.RotationAxis,[0,0,1])
     q_goal = [4,4,pi/4]
     r.GetController().SetDesired(r.GetDOFValues())
@@ -110,9 +123,7 @@ def setrobot(r):
     print("Updating published")
     time.sleep(0.1)
 
-
-if __name__ == "__main__":
-
+def runplanners():
     env = Environment()
     env.SetViewer('qtcoin')
     collisionChecker = RaveCreateCollisionChecker(env,'ode')
@@ -122,36 +133,92 @@ if __name__ == "__main__":
     robot = env.GetRobots()[0]
     RaveInitialize()
     RaveLoadPlugin('planner_plugin/build/planner_plugin')
+    results = {}
 
     try:
         with env:
             mod = RaveCreateModule(env,'PlannerModule')
             print(mod)
             seed = random.random()*10000
-            goalbias = 50 # in percentage
+            goalbias = 30 # in percentage
 
             if(PROBLEM == "Planar") : algo = 2
             if(PROBLEM == "Arm") : algo = 1
             setrobot(robot)
             env.UpdatePublishedBodies()
             print("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
-            raw_input("Press enter to start...")
+            if(interactive) : raw_input("Press enter to start...")
             start = time.clock()
             traj_pot = mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
             end = time.clock()
-            print 'Total time for RRT with potential : ', end - start
+            if traj_pot is None: raise ValueError
+            rrt_potential_time = end - start
+            print 'Total time for RRT with potential : ', rrt_potential_time
+            t = openravepy.RaveCreateTrajectory(env,'').deserialize(traj_pot)
+            rrt_potential_trajduration = t.GetDuration()
+            print 'Trajectory will take ',rrt_potential_trajduration,'s to execute'
 
-            if(PROBLEM == "Planar") : algo = 2
-            else: raise
+            if(PROBLEM == "Planar") : algo = 3
+            else: raise ValueError
             setrobot(robot)
             print("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
-            raw_input("Press enter to start...")
+            if(interactive) : raw_input("Press enter to start...")
             start = time.clock()
             traj_rrt = mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
             end = time.clock()
-            print 'Total time for RRT : ', end - start
+            rrt_vanilla_time = end - start
+            print 'Total time for RRT : ', rrt_vanilla_time
+            t = openravepy.RaveCreateTrajectory(env,'').deserialize(traj_rrt)
+            rrt_vanilla_trajduration = t.GetDuration()
+            print 'Trajectory will take ',rrt_vanilla_trajduration,'s to execute'
+            results['CollisionFraction'] = getcollisionfraction(env, robot)
+            results['Time'] = {'potential':rrt_potential_time, 'vanilla':rrt_vanilla_time}
+            results['PathDuration'] = {'potential':rrt_potential_trajduration, 'vanilla':rrt_vanilla_trajduration}
+ 
     except Exception as e:
         print(e)
         print 'Error on line {}'.format(sys.exc_info()[-1].tb_lineno)
     finally:
-        raw_input("Press enter to exit...")
+        if(interactive) : raw_input("Press enter to exit...")
+        print("Destroying...")
+
+    return results
+
+def runfewtimes():
+    time_potential=[]
+    time_vanilla=[]
+    pathduration_potential=[]
+    pathduration_vanilla=[]
+    for i in range(2):
+        res = None
+        try:
+            res = runplanners()
+        except:
+            if res is None:
+                continue
+        print(res)
+        time_potential.append(res['Time']['potential'])
+        time_vanilla.append(res['Time']['vanilla'])
+        pathduration_potential.append(res['PathDuration']['potential'])
+        pathduration_vanilla.append(res['PathDuration']['vanilla'])
+    
+    plt.subplot(1,2,1)
+    plot(time_potential,label="Potential")
+    plot(time_vanilla,label="Vanilla")
+    plt.legend()
+
+    plt.subplot(1,2,2)
+    plot(pathduration_potential,label="Potential")
+    plot(pathduration_vanilla,label="Vanilla")
+    plt.legend()
+
+    plt.show()
+
+
+if __name__ == "__main__":
+    res = runplanners()
+    if res:
+        f = open("results_11_14_2.txt", "a")
+        f.write('\n'+str(res['Time']['potential'])+','+str(res['Time']['vanilla'])+','+str(res['CollisionFraction'])+';')
+        f.close()
+    RaveDestroy()

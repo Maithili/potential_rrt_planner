@@ -24,7 +24,10 @@ extern "C" {
 
 #define HUGE_VAL 1000.0
 
+static constexpr bool silent = false;
+
 #ifdef PLANAR
+
 static constexpr float step_size = 0.2;
 static constexpr float inner_step_size = step_size;
 static constexpr int num_baby_steps = 5;
@@ -33,7 +36,7 @@ static constexpr float node_distance_tolerance = step_size * 1.5;
 namespace potential_params
 {
     const float max_dist                = 3.5F;
-    const float min_dist                = 0.3F;
+    const float min_dist                = 0.2F;
     const float potential_power         = 1.5F;
     const float max_potential_gradient  = 10.0F;
     const float potential_gradient_goal = 15.0F;
@@ -355,6 +358,7 @@ OpenRAVE::GraphHandlePtr drawEdge(OpenRAVE::EnvironmentBasePtr env, Config point
 
 void showRobot(OpenRAVE::EnvironmentBasePtr env)
 {
+    if(silent) return;
     std::vector<OpenRAVE::RobotBasePtr> robots;
     env->GetRobots(robots);
     OpenRAVE::RobotBasePtr robot = robots.front();
@@ -368,6 +372,7 @@ void showRobot(OpenRAVE::EnvironmentBasePtr env)
 
 void showRobotAt(Config cfg, OpenRAVE::EnvironmentBasePtr env)
 {
+    if(silent) return;
     std::vector<OpenRAVE::RobotBasePtr> robots;
     env->GetRobots(robots);
     OpenRAVE::RobotBasePtr robot = robots.front();

@@ -82,12 +82,16 @@ void moveRobot(std::vector<std::vector<double> > path, EnvironmentBasePtr& env, 
     robot->GetActiveDOFAccelerationLimits(acc);
     OpenRAVE::planningutils::RetimeAffineTrajectory(traj,vel,acc);
     
-    std::cout<<"Total time for trajectory : "<<traj->GetDuration()<<std::endl;
-    std::cout<<"DOFs in configuration : "<<robot->GetActiveConfigurationSpecification("linear").GetDOF()<<std::endl;
-    std::cout<<"Number of waypoints in trajectory : "<<traj->GetNumWaypoints()<<std::endl;
+    if(!silent)
+    {
+        std::cout<<"Total time for trajectory : "<<traj->GetDuration()<<std::endl;
+        std::cout<<"DOFs in configuration : "<<robot->GetActiveConfigurationSpecification("linear").GetDOF()<<std::endl;
+        std::cout<<"Number of waypoints in trajectory : "<<traj->GetNumWaypoints()<<std::endl;
 
-    robot->GetController()->SetPath(traj);
-    robot->SetMotion(traj);
+        // robot->GetController()->SetPath(traj);
+        // robot->SetMotion(traj);
+    }
+
     traj->serialize(sout);
 }
 
@@ -95,7 +99,6 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
 {
     int max_iterations = 10000;
     parseInput(sinput);
-    // env_ = GetEnv();
     std::vector<double> lower_limit;
     std::vector<double> upper_limit;
     
@@ -170,16 +173,13 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
         return false;
     }
 
+    viz_objects.clear();
+    viz_objects_permanent.clear();
+
     if(planner_.plan(max_iterations))
         path_ = planner_.getPath();
 
     moveRobot(path_, env_, sout);
-
-    char temp;
-    std::cin>> temp;
-
-    viz_objects.clear();
-    viz_objects_permanent.clear();
 
     return true;
 }
@@ -227,7 +227,5 @@ void PlannerModule::parseInput(std::istream& sinput)
     }
     srand(seed);
 }
-
-
 
 #endif

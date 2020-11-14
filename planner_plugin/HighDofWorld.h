@@ -55,7 +55,7 @@ Config HighDofWorld::stepTowards(Config from, Config towards, std::vector<Config
       step = getObstacleGradient(from);
       step += (towards-from).normalized() * potential_params::goal_potential_gradient;
       step.normalize();
-      if(!configInLimits(step+from))
+      if(!configInLimits(step+from) || isInCollision(step+from))
          break;
       intermediate_steps.push_back(step);
       from = step;

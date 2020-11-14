@@ -1,3 +1,7 @@
 #! /bin/bash
-python scenes/make_random_obstacles.py > scenes/random_obstacles.xml
-./make_planner.sh && ./rrt.py
+./make_planner.sh && 
+for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25
+do
+    python scenes/make_random_obstacles.py > scenes/random_obstacles.xml
+	./rrt.py
+done

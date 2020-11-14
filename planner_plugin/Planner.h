@@ -78,7 +78,6 @@ bool RRTPlanner::plan(int max_iterations)
 
 RRTPlanner::ConnectResult RRTPlanner::connectTo(Config connect_goal)
 {
-    // viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, connect_goal, Pale, 8));
     std::function<float(Node)> distance_to_goal = [&connect_goal](Node node) 
         { return (node.getConfiguration() - connect_goal).norm(); };
     std::shared_ptr<Node> closest_node = search_tree_.getClosestNode(distance_to_goal);
@@ -91,7 +90,7 @@ RRTPlanner::ConnectResult RRTPlanner::connectTo(Config connect_goal)
         Config new_config = world_ptr_->stepTowards(closest_node->getConfiguration(), connect_goal, intermediate_steps);
         if(world_ptr_->isInCollision(new_config))
         {
-            viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, new_config, Red, 3));
+            if(!silent) viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, new_config, Red, 3));
             result = ConnectResult::Collided;
             return result;
         }
@@ -105,10 +104,10 @@ RRTPlanner::ConnectResult RRTPlanner::connectTo(Config connect_goal)
         closest_node->setIntermediateSteps(intermediate_steps);
 
         Config n1 = closest_node->getParent()->getConfiguration();
-        viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, n1, Blue));
+        if(!silent) viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, n1, Blue));
         if(intermediate_steps.empty()) intermediate_steps.push_back(closest_node->getConfiguration());
 
-        for (auto s : intermediate_steps)
+        if(!silent) for (auto s : intermediate_steps)
         {        
             Config n2 = s;
             viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, n2, Blue, 2));
@@ -138,14 +137,18 @@ std::vector<std::vector<double> > RRTPlanner::getPath() const
     while (current_node->getConfiguration() != world_ptr_->getStart())
     {
         std::vector<Config> steps = current_node->getIntermediateSteps();
+        if(steps.empty()) steps.push_back(current_node->getConfiguration());
         std::reverse(steps.begin(), steps.end());
         Config n1 = current_node->getConfiguration();
         for(auto& s : steps)
         {
-            Config n2 = s;
-            viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, n2, Green, 3));
-            viz_objects_permanent.push_back(drawEdge(world_ptr_->env_, n2, n1, Green));
-            n1 = n2;
+            if (!silent)
+            {
+                Config n2 = s;
+                viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, n2, Green, 3));
+                viz_objects_permanent.push_back(drawEdge(world_ptr_->env_, n2, n1, Green));
+                n1 = n2;
+            }
             std::vector<double> config_stl;
             copyToVector(s, config_stl);
             path.push_back(config_stl);

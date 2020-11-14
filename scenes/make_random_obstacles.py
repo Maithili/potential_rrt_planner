@@ -26,43 +26,43 @@ class Circle:
         self.y = y
         self.r = r
 
-def intersect_cc(c1, c2):
-    dist = np.linalg.norm(np.array(((c1.x-c2.x), (c1.y-c2.y))))
-    return (dist<(c1.r+c2.r))
+# def intersect_cc(c1, c2):
+#     dist = np.linalg.norm(np.array(((c1.x-c2.x), (c1.y-c2.y))))
+#     return (dist<(c1.r+c2.r))
 
-def intersect_rc(rect, circ):
-    rel_x = (circ.x - rect.x) * math.cos(rect.th) - (circ.y - rect.y) * math.sin(rect.th)
-    rel_y = (circ.x - rect.x) * math.sin(rect.th) + (circ.y - rect.y) * math.cos(rect.th)
-    return ((abs(rel_x) < rect.w+circ.r) and (abs(rel_y) < rect.h+circ.r))
+# def intersect_rc(rect, circ):
+#     rel_x = (circ.x - rect.x) * math.cos(rect.th) - (circ.y - rect.y) * math.sin(rect.th)
+#     rel_y = (circ.x - rect.x) * math.sin(rect.th) + (circ.y - rect.y) * math.cos(rect.th)
+#     return ((abs(rel_x) < rect.w+circ.r) and (abs(rel_y) < rect.h+circ.r))
 
-def intersect_rr(r1, r2):
-    radius1 = np.linalg.norm(np.array((r1.w, r1.h)))
-    circ1 = Circle(r1.x, r1.y, radius1)
-    radius2 = np.linalg.norm(np.array((r2.w, r2.h)))
-    circ2 = Circle(r2.x, r2.y, radius2)
-    return (intersect_rc(r1, circ2) or intersect_rc(r2, circ1))
+# def intersect_rr(r1, r2):
+#     radius1 = np.linalg.norm(np.array((r1.w, r1.h)))
+#     circ1 = Circle(r1.x, r1.y, radius1)
+#     radius2 = np.linalg.norm(np.array((r2.w, r2.h)))
+#     circ2 = Circle(r2.x, r2.y, radius2)
+#     return (intersect_rc(r1, circ2) or intersect_rc(r2, circ1))
 
-def circle_intersects_anything(circ):
-    global rectangles 
-    global circles
-    for r in rectangles:
-        if(intersect_rc(r, circ)):
-            return True
-    for c in circles:
-        if(intersect_cc(c, circ)):
-            return True
-    return False
+# def circle_intersects_anything(circ):
+#     global rectangles 
+#     global circles
+#     for r in rectangles:
+#         if(intersect_rc(r, circ)):
+#             return True
+#     for c in circles:
+#         if(intersect_cc(c, circ)):
+#             return True
+#     return False
 
-def rectangle_intersects_anything(rect):
-    global rectangles 
-    global circles
-    for r in rectangles:
-        if(intersect_rr(rect, r)):
-            return True
-    for c in circles:
-        if(intersect_rc(rect, c)):
-            return True
-    return False
+# def rectangle_intersects_anything(rect):
+#     global rectangles 
+#     global circles
+#     for r in rectangles:
+#         if(intersect_rr(rect, r)):
+#             return True
+#     for c in circles:
+#         if(intersect_rc(rect, c)):
+#             return True
+#     return False
 
 def make_square(rect):
     center = np.array((rect.x,rect.y))
@@ -132,19 +132,21 @@ def print_circle(circ):
     cnt = cnt+1
 
 def main():
-    area_left = 25.0*0.4
+    area_left = 25.0*0.5
     print_header()
     while(area_left > 0):
-        rect = Rectangle(rand_x(),rand_y(),rand_ext(),rand_ext(),rand_th())
-        while(rectangle_intersects_anything(rect)):
+        if random.random()>0.5:
             rect = Rectangle(rand_x(),rand_y(),rand_ext(),rand_ext(),rand_th())
-        print_box(rect)
-        area_left -= rect.w * rect.h
-        circ = Circle(rand_x(),rand_y(),rand_ext())
-        while (circle_intersects_anything(circ)):
+            # while(rectangle_intersects_anything(rect)):
+            rect = Rectangle(rand_x(),rand_y(),rand_ext(),rand_ext(),rand_th())
+            print_box(rect)
+            area_left -= rect.w * rect.h
+        else :
             circ = Circle(rand_x(),rand_y(),rand_ext())
-        print_circle(circ)
-        area_left -= math.pi * circ.r * circ.r
+            # while (circle_intersects_anything(circ)):
+            circ = Circle(rand_x(),rand_y(),rand_ext())
+            print_circle(circ)
+            area_left -= math.pi * circ.r * circ.r
     print_footer()
 
 if __name__ == "__main__":

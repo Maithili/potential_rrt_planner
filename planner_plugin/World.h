@@ -115,10 +115,12 @@ public:
         for(int i=0; i<num_baby_steps; ++i)
         {
             step = smallStep(from, towards);
+            if(isInCollision(step))
+                return from;
             intermediate_steps.push_back(step);
             from = step;
         }
-        return step;
+        return from;
     }
 
 private:
