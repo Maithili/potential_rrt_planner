@@ -6,6 +6,7 @@ import openravepy
 import sys
 import scipy
 import random
+from math import sqrt
 
 PROBLEM = "Planar"
 # PROBLEM = "Arm"
@@ -39,6 +40,26 @@ def getcollisionfraction(env,robot):
             if (env.CheckCollision(robot)) : collisions = collisions + 1
             else : non_collisions = non_collisions + 1
     return (float(collisions)/float(collisions+non_collisions))
+
+def dist(a,b):
+    return numpy.linalg.norm(numpy.array([a[0]-b[0],a[1]-b[1]]))
+
+def area(a,b,c):
+    return (b[0]-a[0])*(c[1]-a[1]) - (b[1]-a[1])*(c[0]-a[0])
+
+def threepointcurvature(a,b,c):
+    return (4*area(a,b,c))/(dist(a,b)*dist(b,c)*dist(c,a))
+
+def curvatureRMS(traj):
+    n = traj.GetNumWaypoints()
+    n = n-2
+    curvatures = []
+    for i in range(n):
+        p1 = traj.GetWaypoint(i)
+        p2 = traj.GetWaypoint(i+1)
+        p3 = traj.GetWaypoint(i+2)
+        curvatures.append(threepointcurvature(p1,p2,p3))
+    return numpy.linalg.norm(numpy.array(curvatures))/sqrt(n)
 
 def setarmenv(e):
     # table
@@ -134,6 +155,9 @@ def runplanners():
     RaveInitialize()
     RaveLoadPlugin('planner_plugin/build/planner_plugin')
     results = {}
+    results['CurvatureRMS'] = {}
+    results['Time'] = {}
+    results['PathDuration'] = {}
 
     try:
         with env:
@@ -152,11 +176,12 @@ def runplanners():
             traj_pot = mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
             end = time.clock()
             if traj_pot is None: raise ValueError
-            rrt_potential_time = end - start
-            print 'Total time for RRT with potential : ', rrt_potential_time
+            results['Time']['potential'] = end - start
+            print 'Total time for RRT with potential : ', results['Time']['potential']
             t = openravepy.RaveCreateTrajectory(env,'').deserialize(traj_pot)
-            rrt_potential_trajduration = t.GetDuration()
-            print 'Trajectory will take ',rrt_potential_trajduration,'s to execute'
+            results['PathDuration']['potential'] = t.GetDuration()
+            print 'Trajectory will take ',results['PathDuration']['potential'],'s to execute'
+            results['CurvatureRMS']['potential'] = curvatureRMS(t)
 
             if(PROBLEM == "Planar") : algo = 3
             else: raise ValueError
@@ -166,14 +191,14 @@ def runplanners():
             start = time.clock()
             traj_rrt = mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
             end = time.clock()
-            rrt_vanilla_time = end - start
-            print 'Total time for RRT : ', rrt_vanilla_time
+            results['Time']['vanilla'] = end - start
+            print 'Total time for RRT : ', results['Time']['vanilla']
             t = openravepy.RaveCreateTrajectory(env,'').deserialize(traj_rrt)
-            rrt_vanilla_trajduration = t.GetDuration()
-            print 'Trajectory will take ',rrt_vanilla_trajduration,'s to execute'
+            results['PathDuration']['vanilla'] = t.GetDuration()
+            print 'Trajectory will take ',results['PathDuration']['vanilla'],'s to execute'
+            results['CurvatureRMS']['vanilla'] = curvatureRMS(t)
+            
             results['CollisionFraction'] = getcollisionfraction(env, robot)
-            results['Time'] = {'potential':rrt_potential_time, 'vanilla':rrt_vanilla_time}
-            results['PathDuration'] = {'potential':rrt_potential_trajduration, 'vanilla':rrt_vanilla_trajduration}
  
     except Exception as e:
         print(e)
@@ -217,8 +242,9 @@ def runfewtimes():
 
 if __name__ == "__main__":
     res = runplanners()
-    if res:
-        f = open("results_11_14_2.txt", "a")
-        f.write('\n'+str(res['Time']['potential'])+','+str(res['Time']['vanilla'])+','+str(res['CollisionFraction'])+';')
+    print(res)
+    if res and not interactive:
+        f = open("results_11_15.txt", "a")
+        f.write('\n'+str(res['Time']['potential'])+','+str(res['Time']['vanilla'])+','+str(res['CurvatureRMS']['potential'])+','+str(res['CurvatureRMS']['vanilla'])+','+str(res['CollisionFraction'])+';')
         f.close()
     RaveDestroy()
