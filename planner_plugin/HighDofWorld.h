@@ -33,7 +33,7 @@ public:
       RAVELOG_INFO("Constructed high DOF world");
    }
 
-   Config stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps) override;
+   bool stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps, Config& config_out) override;
 
 private:
    Config getObstacleGradient(Config cfg);
@@ -42,26 +42,28 @@ private:
    Spheres robot_spheres_;
 };
 
-Config HighDofWorld::stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps)
+bool HighDofWorld::stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps, Config& config_out)
 {
    Config step;
    // std::cout<<"Stepping from : "<<from.transpose()<<std::endl;
    // std::cout<<"Stepping to : "<<towards.transpose()<<std::endl;
    intermediate_steps.clear();
+   config_out = from;
    for (int i=0; i<num_baby_steps; ++i)
    {
-      updateSphereLocations(from);
+      updateSphereLocations(config_out);
       showRobot(env_);
-      step = getObstacleGradient(from);
-      step += (towards-from).normalized() * potential_params::goal_potential_gradient;
+      step = getObstacleGradient(config_out);
+      step += (towards-config_out).normalized() * potential_params::goal_potential_gradient;
+      if (step.norm()<1e-5) return false;
       step.normalize();
-      if(!configInLimits(step+from) || isInCollision(step+from))
+      if(!configInLimits(step+config_out) || isInCollision(step+config_out))
          break;
-      intermediate_steps.push_back(step);
-      from = step;
+      config_out += step;
+      intermediate_steps.push_back(config_out);
    }
    showRobotAt(from, env_);
-   return from;
+   return true;
 }
 
 void HighDofWorld::updateSphereLocations(Config cfg)

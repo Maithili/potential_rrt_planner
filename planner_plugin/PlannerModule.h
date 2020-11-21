@@ -3,7 +3,8 @@
 
 #include <boost/bind.hpp>
 #include <openrave/planningutils.h>
-#include "Planner.h"
+#include "RRTPlanner.h"
+#include "RRTConnectPlanner.h"
 
 using namespace std;
 using namespace OpenRAVE;
@@ -33,7 +34,7 @@ class PlannerModule : public ModuleBase
 public:
     PlannerModule(EnvironmentBasePtr penv, std::istream& ss) : 
         ModuleBase(penv), env_(penv), world_(env_),
-        world_potential_(env_), world_high_dof_(env_), planner_()
+        world_potential_(env_), world_high_dof_(env_)
     {
         RegisterCommand("PlannerCommand",boost::bind(&PlannerModule::runCommand,this,_1,_2),
                         "algo 1/2; goal x,y,th ; goalbias 1; done");
@@ -55,10 +56,14 @@ public:
 
 private:
     EnvironmentBasePtr env_;
+
     EuclideanWorld world_;
     EuclideanWorldWithPotential world_potential_;
     HighDofWorld world_high_dof_;
-    RRTPlanner planner_;
+
+    // RRTPlanner planner_;
+    RRTConnectPlanner planner_;
+
     std::vector<double> start_;
     std::vector<double> goal_;
     int algo_;
@@ -154,7 +159,7 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
     std::cout<<"   Goal configuration  : "<<chosen_world->getGoal().transpose()<<std::endl;
     std::cout<<"   Lower limit : "<<chosen_world->getLowerLimits().transpose()<<std::endl;
     std::cout<<"   Upper limit : "<<chosen_world->getUpperLimits().transpose()<<std::endl;
-    std::cout<<"   Goal bias : "<<planner_.goal_bias_<<std::endl;
+    // std::cout<<"   Goal bias : "<<planner_.goal_bias_<<std::endl;
     std::cout<<"   Step size : "<<step_size<<std::endl;
     std::cout<<"   Tolerance : "<<node_distance_tolerance<<std::endl;
     std::cout<<"----------------------------------------"<<std::endl;
@@ -208,11 +213,11 @@ void PlannerModule::parseInput(std::istream& sinput)
                 sinput>>temp;
             }
         }
-        else if(input == "goalbias")
-        {
-            sinput>>planner_.goal_bias_;
-            sinput>>temp;
-        }
+        // else if(input == "goalbias")
+        // {
+        //     sinput>>planner_.goal_bias_;
+        //     sinput>>temp;
+        // }
         else if(input == "algo")
         {
             sinput>>algo_;

@@ -273,7 +273,7 @@ public:
         return children_;
     }
 
-    std::shared_ptr<Node> getParent()
+    std::shared_ptr<Node> getParent() const
     {
         return parent_;
     }
@@ -281,14 +281,14 @@ public:
     Config getConfiguration() const {return value_;}
 
     void setIntermediateSteps(std::vector<Config> in) {intermediate_steps_ = in;}
-    std::vector<Config> getIntermediateSteps() {return intermediate_steps_;}
+    std::vector<Config> getIntermediateSteps() const {return intermediate_steps_;}
 
 private:
 
     float               distance_;
     Config              value_;
     std::vector<Config> intermediate_steps_;
-    std::shared_ptr<Node>               parent_;
+    std::shared_ptr<Node>                parent_;
     std::vector<std::shared_ptr<Node> >  children_;
 };
 

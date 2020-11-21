@@ -56,7 +56,7 @@ public:
         return random_config;
     }
 
-    virtual Config stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps) = 0;
+    virtual bool stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps, Config& config_out) = 0;
 
     bool isGoal(Config config) const
     {
@@ -92,10 +92,17 @@ public:
         RAVELOG_INFO("Constructed euclidean world");
     }
 
-    Config stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps)
+    bool stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps, Config& config_out)
     {
         Config goal_gradient = (towards - from).normalized();
-        return (from + goal_gradient * step_size);
+        config_out = from + goal_gradient * step_size;
+        if(isInCollision(config_out))
+        {
+            if(!silent) viz_objects_permanent.push_back(drawConfiguration(this->env_, config_out, Red, 3));
+            return false;
+        }
+        intermediate_steps.push_back(config_out);
+        return true;
     }
 };
 
@@ -108,30 +115,46 @@ public:
         RAVELOG_INFO("Constructed euclidean world with potentials");
     };
 
-    Config stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps)
+    bool stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps, Config& config_out)
     {
         Config step;
         intermediate_steps.clear();
+        config_out = from;
         for(int i=0; i<num_baby_steps; ++i)
         {
-            step = smallStep(from, towards);
+            bool step_success = smallStep(config_out, towards, step);
+            if(!step_success)
+            {
+                if(!silent) viz_objects_permanent.push_back(drawConfiguration(this->env_, step, Pale, 3));
+                return false;
+            }
             if(isInCollision(step))
-                return from;
+            {
+                if(!silent) viz_objects_permanent.push_back(drawConfiguration(this->env_, step, Red, 3));
+                return false;
+            }
+            if(!silent)
+            {
+                viz_objects_permanent.push_back(drawConfiguration(this->env_, step, Blue, 2));
+                viz_objects_permanent.push_back(drawEdge(this->env_, step, config_out));
+            }
             intermediate_steps.push_back(step);
-            from = step;
+            config_out = step;
         }
-        return from;
+        return true;
     }
 
 private:
 
-    Config smallStep(Config from, Config towards)
+    bool smallStep(Config from, Config towards, Config& step_out)
     {
         Config goal_gradient = (towards - from).normalized();
         goal_gradient *= calculateGoalPotentialGradient();
         Config obstacle_gradient = getObstacleGradient(from);
+        double norm = (goal_gradient + obstacle_gradient).norm();
         Config step = (goal_gradient + obstacle_gradient).normalized() * inner_step_size;
-        return (from + step);
+        step_out = (from + step);
+        return norm > 1e-2;
     }
 
     Config getObstacleGradient(Config q)

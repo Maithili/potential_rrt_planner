@@ -14,6 +14,7 @@ public:
         root_ = std::make_shared<Node>(root_config);
     }
 
+    std::shared_ptr<Node> getRoot() {return root_;}
 
     std::shared_ptr<Node> addChildNode(std::shared_ptr<Node> parent, Config child_config)
     {
@@ -26,7 +27,6 @@ public:
     {
         float min_dist = std::numeric_limits<float>::max();
         std::shared_ptr<Node> closest_node;
-        
         std::vector<std::shared_ptr<Node> > nodes_to_check;
         std::shared_ptr<Node> nodeptr =  root_;
         nodes_to_check.push_back(nodeptr);
@@ -68,6 +68,37 @@ public:
         }
         sleep(0.1);
         viz_objects = handles;
+    }
+
+    std::vector<std::vector<double> > getPathToRoot(std::shared_ptr<Node> leaf, OpenRAVE::EnvironmentBasePtr env) const
+    {
+        std::vector<std::vector<double> > path;
+        std::vector<Config> config_path;
+        while (leaf != root_)
+        {
+            std::vector<Config> steps = leaf->getIntermediateSteps();
+            config_path.insert(config_path.end(),steps.rbegin(), steps.rend());
+            if(leaf->getParent() == nullptr)
+            {
+                std::cout<<"Found nullpointer before reaching root"<<std::endl;
+                break;
+            }
+            leaf = leaf->getParent();
+        }
+        Config prev = config_path.front();
+        for(auto& cfg : config_path)
+        {
+            std::vector<double> config_stl;
+            copyToVector(cfg, config_stl);
+            path.push_back(config_stl);
+            if(!silent)
+            {
+                viz_objects_permanent.push_back(drawConfiguration(env, cfg, Green, 3));
+                viz_objects_permanent.push_back(drawEdge(env, cfg, prev, Green));
+                prev = cfg;
+            }
+        }
+        return path;
     }
 
 private:
