@@ -33,7 +33,7 @@ public:
       RAVELOG_INFO("Constructed high DOF world");
    }
 
-   bool stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps, Config& config_out) override;
+   ExtendResult stepTowards(Config from, Config towards, std::vector<Config>& steps) override;
 
 private:
    Config getObstacleGradient(Config cfg);
@@ -42,28 +42,30 @@ private:
    Spheres robot_spheres_;
 };
 
-bool HighDofWorld::stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps, Config& config_out)
+HighDofWorld::ExtendResult HighDofWorld::stepTowards(Config from, Config towards, std::vector<Config>& steps)
 {
    Config step;
-   // std::cout<<"Stepping from : "<<from.transpose()<<std::endl;
-   // std::cout<<"Stepping to : "<<towards.transpose()<<std::endl;
-   intermediate_steps.clear();
-   config_out = from;
+   steps.clear();
    for (int i=0; i<num_baby_steps; ++i)
    {
-      updateSphereLocations(config_out);
+      updateSphereLocations(from);
       showRobot(env_);
-      step = getObstacleGradient(config_out);
-      step += (towards-config_out).normalized() * potential_params::goal_potential_gradient;
-      if (step.norm()<1e-5) return false;
+      step = getObstacleGradient(from);
+      step += (towards-from).normalized() * potential_params::goal_potential_gradient;
+      if (step.norm()<1e-5) 
+         return i==0 ? ExtendResult::CollidedWithoutExtension : ExtendResult::CollidedAfterExtension;
       step.normalize();
-      if(!configInLimits(step+config_out) || isInCollision(step+config_out))
-         break;
-      config_out += step;
-      intermediate_steps.push_back(config_out);
+      if(!configInLimits(step+from) || isInCollision(step+from))
+         return i==0 ? ExtendResult::CollidedWithoutExtension : ExtendResult::CollidedAfterExtension;
+      from += step;
+      steps.push_back(from);
+      showRobotAt(from, env_);
+      if((from-towards).norm() < node_distance_tolerance)
+         return ExtendResult::ReachedConnectGoal;
+      if(isGoal(from))
+         return ExtendResult::ReachedPlannerGoal;
    }
-   showRobotAt(from, env_);
-   return true;
+   return ExtendResult::Extended;
 }
 
 void HighDofWorld::updateSphereLocations(Config cfg)

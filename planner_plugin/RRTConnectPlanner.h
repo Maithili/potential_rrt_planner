@@ -24,7 +24,7 @@ public:
 
 private:
     std::shared_ptr<Node> extendTo(Config connect_goal, int tree_idx);
-    ConnectResult connectTo(Config connect_goal, int tree_idx);
+    World::ExtendResult connectTo(Config connect_goal, int tree_idx);
 
     ConfigTree search_tree_[2];
     std::shared_ptr<Node> goal_node_[2];
@@ -41,8 +41,8 @@ bool RRTConnectPlanner::plan(int max_iterations)
         Config random_config = world_ptr_->getRandomConfigNotInCollision();
         goal_node_[1-conn_tree_] = extendTo(random_config, 1-conn_tree_);
         if (goal_node_[1-conn_tree_]==nullptr) continue;
-        ConnectResult connect_result = connectTo(goal_node_[1-conn_tree_]->getConfiguration(), conn_tree_);
-        if (connect_result == ConnectResult::ReachedGoal)
+        World::ExtendResult connect_result = connectTo(goal_node_[1-conn_tree_]->getConfiguration(), conn_tree_);
+        if (connect_result == World::ExtendResult::ReachedConnectGoal)
         {
             std::cout<<"Nodes matched at : "<<goal_node_[0]->getConfiguration().transpose()
                                    <<" and "<<goal_node_[1]->getConfiguration().transpose()<<std::endl;
@@ -67,73 +67,41 @@ std::vector<std::vector<double> > RRTConnectPlanner::getPath() const
 
 std::shared_ptr<Node> RRTConnectPlanner::extendTo(Config connect_goal, int tree_idx)
 {
-    std::function<float(Node)> distance_to_goal = [&connect_goal](Node node) 
-        { return (node.getConfiguration() - connect_goal).norm(); };
     ConfigTree* tree = &search_tree_[tree_idx];
-    std::shared_ptr<Node> closest_node = tree->getClosestNode(distance_to_goal);
+    std::shared_ptr<Node> closest_node = tree->getClosestNode(connect_goal);
 
-    int steps_allowed = 1;
-
-    std::vector<Config> intermediate_steps;
-    Config new_config;
-    bool success = world_ptr_->stepTowards(closest_node->getConfiguration(), connect_goal, intermediate_steps, new_config);
-    
-    if(!success)
+    std::vector<Config> steps;
+    World::ExtendResult result = world_ptr_->stepTowards(closest_node->getConfiguration(), connect_goal, steps);
+    if(result != World::ExtendResult::CollidedWithoutExtension)
     {
-        return nullptr;
+        closest_node = tree->addChildNode(closest_node, steps.back());
+        closest_node->setIntermediateSteps(steps);
+        return closest_node;
     }
 
-    closest_node = tree->addChildNode(closest_node, new_config);
-    closest_node->setIntermediateSteps(intermediate_steps);
-
-    if(!silent)
-    {
-        Config n1 = closest_node->getConfiguration();
-        viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, n1, Blue));
-    }
-
-    return closest_node;
+    return nullptr;
 }
 
-RRTConnectPlanner::ConnectResult RRTConnectPlanner::connectTo(Config connect_goal, int tree_idx)
+World::ExtendResult RRTConnectPlanner::connectTo(Config connect_goal, int tree_idx)
 {
     ConfigTree* tree = &search_tree_[tree_idx];
-    std::function<float(Node)> distance_to_connect_goal = [&connect_goal](Node node) 
-        { return (node.getConfiguration() - connect_goal).norm(); };
-    std::shared_ptr<Node> closest_node = tree->getClosestNode(distance_to_connect_goal);
-
+    std::shared_ptr<Node> closest_node = tree->getClosestNode(connect_goal);
+    std::vector<Config> steps;
     int steps_allowed = 100;
-    ConnectResult result(ConnectResult::Running);
-    while (result == ConnectResult::Running && steps_allowed > 0)
+    World::ExtendResult result;
+    do
     {
-        std::vector<Config> intermediate_steps;
-        Config new_config;
-        bool success = world_ptr_->stepTowards(closest_node->getConfiguration(), connect_goal, intermediate_steps, new_config);
-        if(!success)
+        result = world_ptr_->stepTowards(closest_node->getConfiguration(), connect_goal, steps);
+        if(result != World::ExtendResult::CollidedWithoutExtension)
         {
-            result = ConnectResult::Collided;
-            break;
+            closest_node = tree->addChildNode(closest_node, steps.back());
+            closest_node->setIntermediateSteps(steps);
         }
-
-        closest_node = tree->addChildNode(closest_node, new_config);
-        closest_node->setIntermediateSteps(intermediate_steps);
-        std::cout<<"Temp"<<closest_node->getConfiguration()<<std::endl;
-
-        if(!silent)
-        {   
-            Config n1 = closest_node->getConfiguration();
-            viz_objects_permanent.push_back(drawConfiguration(world_ptr_->env_, n1, Blue));
-        }
-
-        if(distance_to_connect_goal(*closest_node) < node_distance_tolerance)
-        {
-            result = ConnectResult::ReachedGoal;
-            goal_node_[tree_idx] = closest_node;
-        }
-        --steps_allowed;
     }
+    while (result == World::ExtendResult::Extended && steps_allowed > 0);
 
-    std::cout<<steps_allowed<<" remaining steps"<<std::endl;
+    if(result == World::ExtendResult::ReachedConnectGoal)
+        goal_node_[tree_idx] = closest_node;
     return result;
 }
 

@@ -23,10 +23,36 @@ public:
         return child;
     }
 
-    std::shared_ptr<Node> getClosestNode(std::function<float(Node)> distance_to_target)
+    std::shared_ptr<Node> getClosestNode(Config target)
     {
         float min_dist = std::numeric_limits<float>::max();
-        std::shared_ptr<Node> closest_node;
+        std::shared_ptr<Node> closest_node = nullptr;
+        std::vector<std::shared_ptr<Node> > nodes_to_check;
+        std::shared_ptr<Node> nodeptr =  root_;
+        nodes_to_check.push_back(nodeptr);
+
+        while(!nodes_to_check.empty())
+        {
+            nodeptr = nodes_to_check.back();
+            nodes_to_check.pop_back();
+            float d = (nodeptr->getConfiguration() - target).norm();
+            if(d < min_dist)
+            {
+                closest_node = nodeptr;
+                min_dist = d;
+            }
+            auto children = nodeptr->getChildren();
+            nodes_to_check.insert(nodes_to_check.end(), children.begin(), children.end());
+        }
+        if(closest_node == nullptr)
+            std::cout<<"Closest node failed!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<std::endl;
+        return closest_node;
+    }
+
+    std::vector<std::shared_ptr<Node> > getNodesWithinDistance(std::function<float(Node)> distance_to_target, float threshold)
+    {
+        std::vector<std::shared_ptr<Node> > close_nodes;
+        float min_dist = std::numeric_limits<float>::max();
         std::vector<std::shared_ptr<Node> > nodes_to_check;
         std::shared_ptr<Node> nodeptr =  root_;
         nodes_to_check.push_back(nodeptr);
@@ -36,38 +62,14 @@ public:
             nodeptr = nodes_to_check.back();
             nodes_to_check.pop_back();
             float d = distance_to_target(*nodeptr);
-            if(d < min_dist)
+            if(d < threshold)
             {
-                closest_node = nodeptr;
-                min_dist = d;
+                close_nodes.push_back(nodeptr);
             }
             auto children = nodeptr->getChildren();
             nodes_to_check.insert(nodes_to_check.end(), children.begin(), children.end());
         }
-        return closest_node;
-    }
-
-    void draw(OpenRAVE::EnvironmentBasePtr env)
-    {
-        std::vector<std::shared_ptr<Node> > nodes_to_check;
-        std::shared_ptr<Node> nodeptr =  root_;
-        nodes_to_check.push_back(nodeptr);
-        std::vector<OpenRAVE::GraphHandlePtr> handles;
-        while(!nodes_to_check.empty())
-        {
-            nodeptr = nodes_to_check.back();
-            nodes_to_check.pop_back();
-            handles.push_back(drawConfiguration(env, nodeptr->getConfiguration(), Blue));
-            if(nodeptr->getParent() != nullptr)
-            {
-                handles.push_back(drawEdge(env, nodeptr->getConfiguration(), nodeptr->getParent()->getConfiguration()));
-            }
-
-            auto children = nodeptr->getChildren();
-            nodes_to_check.insert(nodes_to_check.end(), children.begin(), children.end());
-        }
-        sleep(0.1);
-        viz_objects = handles;
+        return close_nodes;
     }
 
     std::vector<std::vector<double> > getPathToRoot(std::shared_ptr<Node> leaf, OpenRAVE::EnvironmentBasePtr env) const

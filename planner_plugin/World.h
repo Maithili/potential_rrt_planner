@@ -21,6 +21,17 @@ public:
     Config getLowerLimits() const {return lower_limits_;}
     Config getUpperLimits() const {return upper_limits_;}
 
+    enum class ExtendResult
+    {
+        Extended                 = 0,
+        ReachedConnectGoal       = 1,
+        CollidedAfterExtension   = 2,
+        CollidedWithoutExtension = 3,
+        ReachedPlannerGoal       = 4
+    };
+
+    virtual ExtendResult stepTowards(Config from, Config towards, std::vector<Config>& steps) = 0;
+    
     bool isInCollision(Config config)
     {
         std::vector<OpenRAVE::RobotBasePtr> robots;
@@ -31,7 +42,7 @@ public:
         robot->SetActiveDOFValues(config_vector);
         return (   env_->CheckCollision(robot)
                 || robot->CheckSelfCollision());
-    };
+    }
 
     Config getRandomConfig()
     {
@@ -56,7 +67,6 @@ public:
         return random_config;
     }
 
-    virtual bool stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps, Config& config_out) = 0;
 
     bool isGoal(Config config) const
     {
@@ -92,17 +102,36 @@ public:
         RAVELOG_INFO("Constructed euclidean world");
     }
 
-    bool stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps, Config& config_out)
+    ExtendResult stepTowards(Config from, Config towards, std::vector<Config>& steps)
     {
+        steps.clear();
         Config goal_gradient = (towards - from).normalized();
-        config_out = from + goal_gradient * step_size;
-        if(isInCollision(config_out))
+        for(int i = 0; i < num_baby_steps; ++i)
         {
-            if(!silent) viz_objects_permanent.push_back(drawConfiguration(this->env_, config_out, Red, 3));
-            return false;
+            Config step = from + goal_gradient * step_size;
+            if(isInCollision(step))
+            {
+                if(!silent) viz_objects_permanent.push_back(drawConfiguration(this->env_, step, Red, 3));
+                return i==0 ? ExtendResult::CollidedWithoutExtension : 
+                              ExtendResult::CollidedAfterExtension;
+            }
+            if(!silent)
+            {
+                viz_objects_permanent.push_back(drawConfiguration(this->env_, step, Blue, 2));
+                viz_objects_permanent.push_back(drawEdge(this->env_, step, from));
+            }
+            from = step;
+            steps.push_back(from);
+            if(isGoal(step))
+            {
+                return ExtendResult::ReachedPlannerGoal;
+            }
+            if((step-towards).norm() < node_distance_tolerance)
+            {
+                return ExtendResult::ReachedConnectGoal;
+            }
         }
-        intermediate_steps.push_back(config_out);
-        return true;
+        return ExtendResult::Extended;
     }
 };
 
@@ -115,33 +144,42 @@ public:
         RAVELOG_INFO("Constructed euclidean world with potentials");
     };
 
-    bool stepTowards(Config from, Config towards, std::vector<Config>& intermediate_steps, Config& config_out)
+    ExtendResult stepTowards(Config from, Config towards, std::vector<Config>& steps)
     {
+        steps.clear();
         Config step;
-        intermediate_steps.clear();
-        config_out = from;
         for(int i=0; i<num_baby_steps; ++i)
         {
-            bool step_success = smallStep(config_out, towards, step);
+            bool step_success = smallStep(from, towards, step);
             if(!step_success)
             {
                 if(!silent) viz_objects_permanent.push_back(drawConfiguration(this->env_, step, Pale, 3));
-                return false;
+                return i==0 ? ExtendResult::CollidedWithoutExtension : 
+                              ExtendResult::CollidedAfterExtension;
             }
             if(isInCollision(step))
             {
                 if(!silent) viz_objects_permanent.push_back(drawConfiguration(this->env_, step, Red, 3));
-                return false;
+                return i==0 ? ExtendResult::CollidedWithoutExtension : 
+                              ExtendResult::CollidedAfterExtension;
             }
             if(!silent)
             {
                 viz_objects_permanent.push_back(drawConfiguration(this->env_, step, Blue, 2));
-                viz_objects_permanent.push_back(drawEdge(this->env_, step, config_out));
+                viz_objects_permanent.push_back(drawEdge(this->env_, step, from));
             }
-            intermediate_steps.push_back(step);
-            config_out = step;
+            from = step;
+            steps.push_back(from);
+            if(isGoal(from))
+            {
+                return ExtendResult::ReachedPlannerGoal;
+            }
+            if((from-towards).norm() < node_distance_tolerance)
+            {
+                return ExtendResult::ReachedConnectGoal;
+            }
         }
-        return true;
+        return ExtendResult::Extended;
     }
 
 private:

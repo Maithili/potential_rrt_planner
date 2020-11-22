@@ -5,6 +5,7 @@
 #include <openrave/planningutils.h>
 #include "RRTPlanner.h"
 #include "RRTConnectPlanner.h"
+#include "RRTStarPlanner.h"
 
 using namespace std;
 using namespace OpenRAVE;
@@ -62,7 +63,8 @@ private:
     HighDofWorld world_high_dof_;
 
     // RRTPlanner planner_;
-    RRTConnectPlanner planner_;
+    // RRTConnectPlanner planner_;
+    RRTStarPlanner planner_;
 
     std::vector<double> start_;
     std::vector<double> goal_;

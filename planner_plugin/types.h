@@ -278,6 +278,8 @@ public:
         return parent_;
     }
 
+    float getDistanceFromRoot() const {return distance_;}
+
     Config getConfiguration() const {return value_;}
 
     void setIntermediateSteps(std::vector<Config> in) {intermediate_steps_ = in;}
