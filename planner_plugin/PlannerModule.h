@@ -180,7 +180,7 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
         return false;
     }
 
-    viz_objects.clear();
+    viz_tree.clear();
     viz_objects_permanent.clear();
 
     if(planner_.plan(max_iterations))
@@ -215,11 +215,6 @@ void PlannerModule::parseInput(std::istream& sinput)
                 sinput>>temp;
             }
         }
-        // else if(input == "goalbias")
-        // {
-        //     sinput>>planner_.goal_bias_;
-        //     sinput>>temp;
-        // }
         else if(input == "algo")
         {
             sinput>>algo_;

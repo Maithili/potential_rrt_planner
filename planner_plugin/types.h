@@ -237,7 +237,7 @@ Color Green{0.2, 0.8, 0.2};
 Color Blue {0.2, 0.1, 0.7};
 Color Pale {0.6, 0.5, 0.6};
 
-std::vector<OpenRAVE::GraphHandlePtr> viz_objects;
+std::vector<OpenRAVE::GraphHandlePtr> viz_tree;
 std::vector<OpenRAVE::GraphHandlePtr> viz_objects_permanent;
 
 class Node
@@ -247,14 +247,16 @@ public:
     // Node(){}
 
     //Use this for the tree root
-    Node(const Config& config): 
+    Node(const Config config): 
         parent_{nullptr}, value_{config}, distance_{0.0F}
     {}
     
-    Node(std::shared_ptr<Node> parent, const Config& config):
-        parent_{parent}, value_{config}, 
-        distance_{parent->distance_ + (parent->value_ - this->value_).norm()}
-    {}
+    Node(std::shared_ptr<Node> parent, const Config config, float distance=-1):
+        parent_{parent}, value_{config}
+    {
+        distance_ = distance > 0 ? parent->getDistanceFromRoot() + distance
+                                 : parent->getDistanceFromRoot() + (parent->getConfiguration() - this->value_).norm();
+    }
 
     void print() const
     {
@@ -273,10 +275,31 @@ public:
         return children_;
     }
 
+    bool removeChild(std::shared_ptr<Node> child_to_remove)
+    {
+        std::vector<std::shared_ptr<Node> >::iterator remove_it = 
+                     std::find_if(children_.begin(), children_.end(),
+                     [&child_to_remove](const std::shared_ptr<Node>& x) 
+                        { return x->getConfiguration().isApprox(child_to_remove->getConfiguration());});
+        
+        if (remove_it == children_.end())
+            return false;
+
+        children_.erase(remove_it);
+        return true;
+    }
+
     std::shared_ptr<Node> getParent() const
     {
         return parent_;
     }
+
+    void setParent(std::shared_ptr<Node> in)
+    {
+        parent_ = in;
+    }
+
+    void setDistance(float in) {distance_=in;}
 
     float getDistanceFromRoot() const {return distance_;}
 
@@ -339,7 +362,7 @@ OpenRAVE::GraphHandlePtr drawConfiguration(OpenRAVE::EnvironmentBasePtr env, Con
     return (env->plot3(point3D, 1, sizeof(point3D[0])*3, size ,color()));
 }
 
-OpenRAVE::GraphHandlePtr drawEdge(OpenRAVE::EnvironmentBasePtr env, Config point_eigen1, Config point_eigen2, Color color = Color())
+OpenRAVE::GraphHandlePtr drawEdge(OpenRAVE::EnvironmentBasePtr env, Config point_eigen1, Config point_eigen2, Color color = Color(), float size = 0.5)
 {
     Location point1;
     point1 = (config_dim > 3) ? getEndeffector(env,point_eigen1) : point_eigen1.topRows(space_dim);
@@ -355,7 +378,7 @@ OpenRAVE::GraphHandlePtr drawEdge(OpenRAVE::EnvironmentBasePtr env, Config point
     point3D[4] = point2(1);
     point3D[5] = space_dim < 3 ? 0.1 : point2(2);
 
-    return (env->drawlinestrip(&point3D[0], 2, sizeof(point3D[0])*3, 0.5, color()));
+    return (env->drawlinestrip(&point3D[0], 2, sizeof(point3D[0])*3, size, color()));
 }
 
 void showRobot(OpenRAVE::EnvironmentBasePtr env)

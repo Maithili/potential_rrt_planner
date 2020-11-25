@@ -33,7 +33,7 @@ public:
       RAVELOG_INFO("Constructed high DOF world");
    }
 
-   ExtendResult stepTowards(Config from, Config towards, std::vector<Config>& steps) override;
+   ExtendResult stepTowards(Config from, Config towards, std::vector<Config>& steps, float& distance_out, bool unlimited_steps = false) override;
 
 private:
    Config getObstacleGradient(Config cfg);
@@ -42,10 +42,11 @@ private:
    Spheres robot_spheres_;
 };
 
-HighDofWorld::ExtendResult HighDofWorld::stepTowards(Config from, Config towards, std::vector<Config>& steps)
+HighDofWorld::ExtendResult HighDofWorld::stepTowards(Config from, Config towards, std::vector<Config>& steps, float& distance_out, bool unlimited_steps)
 {
    Config step;
    steps.clear();
+   distance_out = 0;
    for (int i=0; i<num_baby_steps; ++i)
    {
       updateSphereLocations(from);
@@ -58,6 +59,7 @@ HighDofWorld::ExtendResult HighDofWorld::stepTowards(Config from, Config towards
       if(!configInLimits(step+from) || isInCollision(step+from))
          return i==0 ? ExtendResult::CollidedWithoutExtension : ExtendResult::CollidedAfterExtension;
       from += step;
+      distance_out += step.norm();
       steps.push_back(from);
       showRobotAt(from, env_);
       if((from-towards).norm() < node_distance_tolerance)

@@ -30,7 +30,7 @@ public:
         ReachedPlannerGoal       = 4
     };
 
-    virtual ExtendResult stepTowards(Config from, Config towards, std::vector<Config>& steps) = 0;
+    virtual ExtendResult stepTowards(Config from, Config towards, std::vector<Config>& steps, float& distance_out, bool unlimited_steps = false) = 0;
     
     bool isInCollision(Config config)
     {
@@ -102,89 +102,61 @@ public:
         RAVELOG_INFO("Constructed euclidean world");
     }
 
-    ExtendResult stepTowards(Config from, Config towards, std::vector<Config>& steps)
+    virtual ExtendResult stepTowards(Config from, Config towards, std::vector<Config>& steps, float& distance_out, bool unlimited_steps = false) override
     {
         steps.clear();
-        Config goal_gradient = (towards - from).normalized();
-        for(int i = 0; i < num_baby_steps; ++i)
-        {
-            Config step = from + goal_gradient * step_size;
-            if(isInCollision(step))
-            {
-                if(!silent) viz_objects_permanent.push_back(drawConfiguration(this->env_, step, Red, 3));
-                return i==0 ? ExtendResult::CollidedWithoutExtension : 
-                              ExtendResult::CollidedAfterExtension;
-            }
-            if(!silent)
-            {
-                viz_objects_permanent.push_back(drawConfiguration(this->env_, step, Blue, 2));
-                viz_objects_permanent.push_back(drawEdge(this->env_, step, from));
-            }
-            from = step;
-            steps.push_back(from);
-            if(isGoal(step))
-            {
-                return ExtendResult::ReachedPlannerGoal;
-            }
-            if((step-towards).norm() < node_distance_tolerance)
-            {
-                return ExtendResult::ReachedConnectGoal;
-            }
-        }
-        return ExtendResult::Extended;
-    }
-};
-
-class EuclideanWorldWithPotential : public World
-{
-public:
-    EuclideanWorldWithPotential(OpenRAVE::EnvironmentBasePtr& env): 
-    World(env), potential_(env, 12.0, 12.0, 0.05)
-    {
-        RAVELOG_INFO("Constructed euclidean world with potentials");
-    };
-
-    ExtendResult stepTowards(Config from, Config towards, std::vector<Config>& steps)
-    {
-        steps.clear();
+        distance_out = 0;
         Config step;
-        for(int i=0; i<num_baby_steps; ++i)
+        int max_steps = unlimited_steps ? 1000 : num_baby_steps;
+        for(int i=0; i<max_steps; ++i)
         {
             bool step_success = smallStep(from, towards, step);
             if(!step_success)
             {
-                if(!silent) viz_objects_permanent.push_back(drawConfiguration(this->env_, step, Pale, 3));
                 return i==0 ? ExtendResult::CollidedWithoutExtension : 
                               ExtendResult::CollidedAfterExtension;
             }
             if(isInCollision(step))
             {
-                if(!silent) viz_objects_permanent.push_back(drawConfiguration(this->env_, step, Red, 3));
                 return i==0 ? ExtendResult::CollidedWithoutExtension : 
                               ExtendResult::CollidedAfterExtension;
             }
-            if(!silent)
-            {
-                viz_objects_permanent.push_back(drawConfiguration(this->env_, step, Blue, 2));
-                viz_objects_permanent.push_back(drawEdge(this->env_, step, from));
-            }
+            distance_out += (step-from).norm();
             from = step;
             steps.push_back(from);
             if(isGoal(from))
             {
                 return ExtendResult::ReachedPlannerGoal;
             }
-            if((from-towards).norm() < node_distance_tolerance)
+            if((from-towards).norm() < step_size)
             {
+                distance_out += (towards-step).norm();
+                steps.push_back(towards);
                 return ExtendResult::ReachedConnectGoal;
             }
         }
         return ExtendResult::Extended;
     }
 
+    virtual bool smallStep(Config from, Config towards, Config& step_out)
+    {
+        step_out = from + (towards - from).normalized() * step_size;
+        return (! towards.isApprox(from));
+    }
+};
+
+class EuclideanWorldWithPotential : public EuclideanWorld
+{
+public:
+    EuclideanWorldWithPotential(OpenRAVE::EnvironmentBasePtr& env): 
+    EuclideanWorld(env), potential_(env, 12.0, 12.0, 0.05)
+    {
+        RAVELOG_INFO("Constructed euclidean world with potentials");
+    };
+
 private:
 
-    bool smallStep(Config from, Config towards, Config& step_out)
+    bool smallStep(Config from, Config towards, Config& step_out) override
     {
         Config goal_gradient = (towards - from).normalized();
         goal_gradient *= calculateGoalPotentialGradient();

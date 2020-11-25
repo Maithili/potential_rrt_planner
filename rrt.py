@@ -164,16 +164,15 @@ def runplanners():
             mod = RaveCreateModule(env,'PlannerModule')
             print(mod)
             seed = random.random()*10000
-            goalbias = 30 # in percentage
 
             if(PROBLEM == "Planar") : algo = 2
             if(PROBLEM == "Arm") : algo = 1
             setrobot(robot)
             env.UpdatePublishedBodies()
-            print("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
+            print("PlannerCommand algo %f ; seed %f ; goal %s ; done" %(algo,seed,goalstring))
             if(interactive) : raw_input("Press enter to start...")
             start = time.clock()
-            traj_pot = mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
+            traj_pot = mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %s ; done" %(algo,seed,goalstring))
             end = time.clock()
             if traj_pot is None: raise ValueError
             results['Time']['potential'] = end - start
@@ -186,10 +185,10 @@ def runplanners():
             if(PROBLEM == "Planar") : algo = 3
             else: raise ValueError
             setrobot(robot)
-            print("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
+            print("PlannerCommand algo %f ; seed %f ; goal %s ; done" %(algo,seed,goalstring))
             if(interactive) : raw_input("Press enter to start...")
             start = time.clock()
-            traj_rrt = mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %s ; goalbias %f ; done" %(algo,seed,goalstring,float(goalbias)/100))
+            traj_rrt = mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %s ; done" %(algo,seed,goalstring))
             end = time.clock()
             results['Time']['vanilla'] = end - start
             print 'Total time for RRT : ', results['Time']['vanilla']

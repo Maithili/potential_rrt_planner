@@ -28,12 +28,14 @@ bool RRTPlanner::plan(int max_iterations)
     search_tree_.setRoot(world_ptr_->getStart());
     for (int iteration=0; iteration<max_iterations; ++iteration)
     {
+        if (!silent && iteration%20 == 0) search_tree_.draw(world_ptr_->env_);
         potential_params::goal_potential_gradient = potential_params::potential_gradient_goal;
         Config connect_goal = reachToGoal()? world_ptr_->getGoal() 
                                 : world_ptr_->getRandomConfigNotInCollision();
         World::ExtendResult result = extendTo(connect_goal);
         if (result == World::ExtendResult::ReachedPlannerGoal)
         {
+            if (!silent) search_tree_.draw(world_ptr_->env_);
             std::cout<<"Reached node at : "<<goal_node_->getConfiguration().transpose()<<std::endl;
             std::cout<<"Iterations : "<<iteration<<std::endl;
             return true;
@@ -47,15 +49,15 @@ World::ExtendResult RRTPlanner::extendTo(Config connect_goal)
 {
     std::shared_ptr<Node> closest_node = search_tree_.getClosestNode(connect_goal);
     std::vector<Config> steps;
-    World::ExtendResult result = world_ptr_->stepTowards(closest_node->getConfiguration(), connect_goal, steps);
+    float distance;
+    World::ExtendResult result = world_ptr_->stepTowards(closest_node->getConfiguration(), connect_goal, steps, distance);
     if(result != World::ExtendResult::CollidedWithoutExtension)
     {
         if (steps.empty())
         {
             std::cout<<"Something's wrong..Getting ok status but no nodes from stepTowards!!!!!"<<std::endl;
         }
-        closest_node = search_tree_.addChildNode(closest_node, steps.back());
-        closest_node->setIntermediateSteps(steps);
+        closest_node = search_tree_.addChildNode(closest_node, steps, distance);
     }
     if(result == World::ExtendResult::ReachedPlannerGoal)
         goal_node_ = closest_node;
