@@ -82,13 +82,12 @@ public:
         return close_nodes;
     }
 
-    void draw(OpenRAVE::EnvironmentBasePtr env)
+    void draw(OpenRAVE::EnvironmentBasePtr env, std::vector<OpenRAVE::GraphHandlePtr>& viz)
     {
         std::vector<std::shared_ptr<Node> > nodes_to_check;
         std::shared_ptr<Node> nodeptr =  root_;
         nodes_to_check.push_back(nodeptr);
         int total_nodes_checked = 0;
-        viz_tree.clear();
         while(!nodes_to_check.empty())
         {
             nodeptr = nodes_to_check.back();
@@ -118,11 +117,11 @@ public:
                 {
                     std::cout<<"Tree looks weird!!! Steps don't match up!!"<<std::endl;
                 }
-                viz_tree.push_back(drawConfiguration(env, s, Blue, 2));
-                viz_tree.push_back(drawEdge(env, s, p));
+                viz.push_back(drawConfiguration(env, s, Blue, 2));
+                viz.push_back(drawEdge(env, s, p));
                 p = s;
             }
-            viz_tree.push_back(drawConfiguration(env, nodeptr->getConfiguration(), Blue, 3.9));
+            viz.push_back(drawConfiguration(env, nodeptr->getConfiguration(), Blue, 3.9));
             auto children = nodeptr->getChildren();
             nodes_to_check.insert(nodes_to_check.end(), children.begin(), children.end());
             ++total_nodes_checked;

@@ -22,6 +22,13 @@ public:
     
     std::vector<std::vector<double> > getPath() const override;
 
+    void drawTree() 
+    { 
+        viz_tree.clear();
+        search_tree_[0].draw(world_ptr_->env_, viz_tree); 
+        search_tree_[1].draw(world_ptr_->env_, viz_tree); 
+    }
+
 private:
     std::shared_ptr<Node> extendTo(Config connect_goal, int tree_idx);
     World::ExtendResult connectTo(Config connect_goal, int tree_idx);
@@ -38,22 +45,14 @@ bool RRTConnectPlanner::plan(int max_iterations)
     int conn_tree_ = 0;
     for (int iteration=0; iteration<max_iterations; ++iteration)
     {
-        if (!silent && iteration%20 == 0) 
-        {
-            search_tree_[0].draw(world_ptr_->env_);
-            search_tree_[1].draw(world_ptr_->env_);
-        }
+        if (!silent && iteration%20 == 0) drawTree();
         Config random_config = world_ptr_->getRandomConfigNotInCollision();
         goal_node_[1-conn_tree_] = extendTo(random_config, 1-conn_tree_);
         if (goal_node_[1-conn_tree_]==nullptr) continue;
         World::ExtendResult connect_result = connectTo(goal_node_[1-conn_tree_]->getConfiguration(), conn_tree_);
         if (connect_result == World::ExtendResult::ReachedConnectGoal)
         {
-            if (!silent)
-            {
-                search_tree_[0].draw(world_ptr_->env_);
-                search_tree_[1].draw(world_ptr_->env_);
-            }
+            if (!silent) drawTree();
             std::cout<<"Nodes matched at : "<<goal_node_[0]->getConfiguration().transpose()
                                    <<" and "<<goal_node_[1]->getConfiguration().transpose()<<std::endl;
             std::cout<<"Iterations : "<<iteration<<std::endl;

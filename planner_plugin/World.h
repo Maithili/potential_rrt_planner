@@ -113,11 +113,13 @@ public:
             bool step_success = smallStep(from, towards, step);
             if(!step_success)
             {
+                // return ExtendResult::CollidedWithoutExtension;
                 return i==0 ? ExtendResult::CollidedWithoutExtension : 
                               ExtendResult::CollidedAfterExtension;
             }
             if(isInCollision(step))
             {
+                // return ExtendResult::CollidedWithoutExtension;
                 return i==0 ? ExtendResult::CollidedWithoutExtension : 
                               ExtendResult::CollidedAfterExtension;
             }
