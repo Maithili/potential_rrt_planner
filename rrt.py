@@ -11,7 +11,7 @@ from math import sqrt
 PROBLEM = "Planar"
 # PROBLEM = "Arm"
 
-interactive = True
+interactive = False
 
 if not __openravepy_build_doc__:
     from openravepy import *
@@ -144,60 +144,64 @@ def setrobot(r):
     print("Updating published")
     time.sleep(0.1)
 
-def runplanners():
+def runplanner(module, algo, world, seed, goalstring, env):
+    robot = env.GetRobots()[0]
+    run_result = {}
+    setrobot(robot)
+    env.UpdatePublishedBodies()
+    print("PlannerCommand algo %f ; seed %f ; goal %s ; done" %(algo,seed,goalstring))
+    if(interactive) : raw_input("Press enter to start...")
+    start = time.clock()
+    traj_pot = module.SendCommand("PlannerCommand algo %f ; world %f; seed %f ; goal %s ; done" %(algo,world,seed,goalstring))
+    end = time.clock()
+    if traj_pot is None: return None
+    t = openravepy.RaveCreateTrajectory(env,'').deserialize(traj_pot)
+    run_result['Time'] = end - start
+    run_result['PathDuration'] = t.GetDuration()
+    run_result['CurvatureRMS'] = curvatureRMS(t)
+    print 'Total time : ', run_result['Time']
+    return run_result
+
+def run():
     env = Environment()
     env.SetViewer('qtcoin')
     collisionChecker = RaveCreateCollisionChecker(env,'ode')
     env.SetCollisionChecker(collisionChecker)
     env.Reset()   
     goalstring = setenv(env)  
-    robot = env.GetRobots()[0]
+    
     RaveInitialize()
     RaveLoadPlugin('planner_plugin/build/planner_plugin')
     results = {}
-    results['CurvatureRMS'] = {}
-    results['Time'] = {}
-    results['PathDuration'] = {}
+    results['RRT'] = {}
+    results['RRTconnect'] = {}
+    results['RRTstar'] = {}
 
     try:
         with env:
             mod = RaveCreateModule(env,'PlannerModule')
             print(mod)
             seed = random.random()*10000
+            world = 0
+            if(PROBLEM == "Planar") : world = 2
+            if(PROBLEM == "Arm") : world = 3
+            results['RRT']['Potential'] = runplanner(mod, 1, world, seed, goalstring, env)
+            if results['RRT']['Potential'] is None: return {}
+            results['RRTconnect']['Potential'] = runplanner(mod, 2, world, seed, goalstring, env)
+            if results['RRTconnect']['Potential'] is None: return {}
+            results['RRTstar']['Potential'] = runplanner(mod, 3, world, seed, goalstring, env)
+            if results['RRTstar']['Potential'] is None: return {}
 
-            if(PROBLEM == "Planar") : algo = 2
-            if(PROBLEM == "Arm") : algo = 1
-            setrobot(robot)
-            env.UpdatePublishedBodies()
-            print("PlannerCommand algo %f ; seed %f ; goal %s ; done" %(algo,seed,goalstring))
-            if(interactive) : raw_input("Press enter to start...")
-            start = time.clock()
-            traj_pot = mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %s ; done" %(algo,seed,goalstring))
-            end = time.clock()
-            if traj_pot is None: raise ValueError
-            results['Time']['potential'] = end - start
-            print 'Total time for RRT with potential : ', results['Time']['potential']
-            t = openravepy.RaveCreateTrajectory(env,'').deserialize(traj_pot)
-            results['PathDuration']['potential'] = t.GetDuration()
-            print 'Trajectory will take ',results['PathDuration']['potential'],'s to execute'
-            results['CurvatureRMS']['potential'] = curvatureRMS(t)
+            # if(PROBLEM == "Planar") : 
+            world = 1
+            results['RRT']['Vanilla'] = runplanner(mod, 1, world, seed, goalstring, env)
+            if results['RRT']['Vanilla'] is None: return {}
+            results['RRTconnect']['Vanilla'] = runplanner(mod, 2, world, seed, goalstring, env)
+            if results['RRTconnect']['Vanilla'] is None: return {}
+            results['RRTstar']['Vanilla'] = runplanner(mod, 3, world, seed, goalstring, env)
+            if results['RRTstar']['Vanilla'] is None: return {}
 
-            if(PROBLEM == "Planar") : algo = 3
-            else: raise ValueError
-            setrobot(robot)
-            print("PlannerCommand algo %f ; seed %f ; goal %s ; done" %(algo,seed,goalstring))
-            if(interactive) : raw_input("Press enter to start...")
-            start = time.clock()
-            traj_rrt = mod.SendCommand("PlannerCommand algo %f ; seed %f ; goal %s ; done" %(algo,seed,goalstring))
-            end = time.clock()
-            results['Time']['vanilla'] = end - start
-            print 'Total time for RRT : ', results['Time']['vanilla']
-            t = openravepy.RaveCreateTrajectory(env,'').deserialize(traj_rrt)
-            results['PathDuration']['vanilla'] = t.GetDuration()
-            print 'Trajectory will take ',results['PathDuration']['vanilla'],'s to execute'
-            results['CurvatureRMS']['vanilla'] = curvatureRMS(t)
-            
-            results['CollisionFraction'] = getcollisionfraction(env, robot)
+            results['CollisionFraction'] = getcollisionfraction(env, env.GetRobots()[0])
  
     except Exception as e:
         print(e)
@@ -216,7 +220,7 @@ def runfewtimes():
     for i in range(2):
         res = None
         try:
-            res = runplanners()
+            res = run()
         except:
             if res is None:
                 continue
@@ -238,12 +242,31 @@ def runfewtimes():
 
     plt.show()
 
+def serialize(results):
+    s = ''
+
+    s = s + str(res['RRT']['Potential']['Time']) + ','
+    s = s + str(res['RRTconnect']['Potential']['Time']) + ','
+    s = s + str(res['RRTstar']['Potential']['Time']) + ','
+    s = s + str(res['RRT']['Vanilla']['Time']) + ','
+    s = s + str(res['RRTconnect']['Vanilla']['Time']) + ','
+    s = s + str(res['RRTstar']['Vanilla']['Time']) + ','
+
+    s = s + str(res['RRT']['Potential']['CurvatureRMS']) + ','
+    s = s + str(res['RRTconnect']['Potential']['CurvatureRMS']) + ','
+    s = s + str(res['RRTstar']['Potential']['CurvatureRMS']) + ','
+    s = s + str(res['RRT']['Vanilla']['CurvatureRMS']) + ','
+    s = s + str(res['RRTconnect']['Vanilla']['CurvatureRMS']) + ','
+    s = s + str(res['RRTstar']['Vanilla']['CurvatureRMS']) + ','
+
+    s = s + str(results['CollisionFraction'])
+
+    return s
 
 if __name__ == "__main__":
-    res = runplanners()
-    print(res)
+    res = run()
     if res and not interactive:
-        f = open("results_11_15.txt", "a")
-        f.write('\n'+str(res['Time']['potential'])+','+str(res['Time']['vanilla'])+','+str(res['CurvatureRMS']['potential'])+','+str(res['CurvatureRMS']['vanilla'])+','+str(res['CollisionFraction'])+';')
+        f = open("results_12_8.txt", "a")
+        f.write('\n'+serialize(res)+';')
         f.close()
     RaveDestroy()

@@ -10,6 +10,20 @@
 using namespace std;
 using namespace OpenRAVE;
 
+enum class AlgorithmType{
+    None = 0,
+    RRT = 1,
+    RRTconnect = 2,
+    RRTstar = 3
+};
+
+enum class WorldType{
+    Undefined = 0,
+    Euclidean = 1,
+    FlatPotential = 2,
+    HighDOFPotential = 3
+};
+
 class TestPlannerModule : public ModuleBase
 {
 public:
@@ -45,7 +59,7 @@ public:
     virtual ~PlannerModule() {}
 
     bool runCommand(std::ostream& sout, std::istream& sinput);
-    
+
     bool runTest(std::ostream& sout, std::istream& sinput)
     { 
         std::cout<< "Test run for Planner Module"<<std::endl;
@@ -55,16 +69,24 @@ public:
 
     void parseInput(std::istream& sinput);
 
+    void setPlanner();
+    void setWorld();
+
 private:
     EnvironmentBasePtr env_;
 
     EuclideanWorld world_;
     EuclideanWorldWithPotential world_potential_;
     HighDofWorld world_high_dof_;
+    World* active_world_;
 
-    // RRTPlanner planner_;
-    // RRTConnectPlanner planner_;
-    RRTStarPlanner planner_;
+    RRTPlanner rrt_planner_;
+    RRTConnectPlanner connect_planner_;
+    RRTStarPlanner star_planner_;
+    Planner* active_planner_;
+
+    AlgorithmType chosen_algo_;
+    WorldType chosen_world_;
 
     std::vector<double> start_;
     std::vector<double> goal_;
@@ -132,49 +154,31 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
     //                      max_config_for_search[i] : upper_limit[i];
     // }
 
-    World* chosen_world = nullptr;
-    switch(algo_)
-    {
-        case(1):
-            std::cout<<"RRT with potential on robot arm"<<std::endl;
-            chosen_world = &world_high_dof_;
-            break;
-        case(2): 
-            std::cout<<"RRT with potential"<<std::endl;
-            chosen_world = &world_potential_;
-            break;
-        case(3): 
-            std::cout<<"RRT"<<std::endl;
-            chosen_world = &world_;
-            break;
-        default:
-            std::cout<<"Wrong algorithm asked!!!"<<std::endl;
-    }
-    planner_.setWorld(chosen_world);
-    chosen_world->setStart(start_.data());
-    chosen_world->setGoal(goal_.data());
-    chosen_world->setLowerLimits(lower_limit.data());
-    chosen_world->setUpperLimits(upper_limit.data());
+    active_planner_->setWorld(active_world_);
+    active_world_->setStart(start_.data());
+    active_world_->setGoal(goal_.data());
+    active_world_->setLowerLimits(lower_limit.data());
+    active_world_->setUpperLimits(upper_limit.data());
 
     std::cout<<"-----------Planning Problem-------------"<<std::endl;
-    std::cout<<"   Start configuration : "<<chosen_world->getStart().transpose()<<std::endl;
-    std::cout<<"   Goal configuration  : "<<chosen_world->getGoal().transpose()<<std::endl;
-    std::cout<<"   Lower limit : "<<chosen_world->getLowerLimits().transpose()<<std::endl;
-    std::cout<<"   Upper limit : "<<chosen_world->getUpperLimits().transpose()<<std::endl;
+    std::cout<<"   Start configuration : "<<active_world_->getStart().transpose()<<std::endl;
+    std::cout<<"   Goal configuration  : "<<active_world_->getGoal().transpose()<<std::endl;
+    std::cout<<"   Lower limit : "<<active_world_->getLowerLimits().transpose()<<std::endl;
+    std::cout<<"   Upper limit : "<<active_world_->getUpperLimits().transpose()<<std::endl;
     // std::cout<<"   Goal bias : "<<planner_.goal_bias_<<std::endl;
     std::cout<<"   Step size : "<<step_size<<std::endl;
     std::cout<<"   Tolerance : "<<node_distance_tolerance<<std::endl;
     std::cout<<"----------------------------------------"<<std::endl;
 
-    viz_objects_permanent.push_back(drawConfiguration(env_, chosen_world->getStart(), Green, 10));
-    viz_objects_permanent.push_back(drawConfiguration(env_, chosen_world->getGoal(), Green, 10));
+    viz_objects_permanent.push_back(drawConfiguration(env_, active_world_->getStart(), Green, 10));
+    viz_objects_permanent.push_back(drawConfiguration(env_, active_world_->getGoal(), Green, 10));
 
-    if(chosen_world->isInCollision(chosen_world->getStart()))
+    if(active_world_->isInCollision(active_world_->getStart()))
     {
         std::cout<<"Start configuration in collision!!"<<std::endl;
         return false;
     }
-    if(chosen_world->isInCollision(chosen_world->getGoal()))
+    if(active_world_->isInCollision(active_world_->getGoal()))
     {
         std::cout<<"Goal configuration in collision!!"<<std::endl;
         return false;
@@ -183,8 +187,8 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
     viz_tree.clear();
     viz_objects_permanent.clear();
 
-    if(planner_.plan(max_iterations))
-        path_ = planner_.getPath();
+    if(active_planner_->plan(max_iterations))
+        path_ = active_planner_->getPath();
 
     moveRobot(path_, env_, sout);
 
@@ -217,8 +221,17 @@ void PlannerModule::parseInput(std::istream& sinput)
         }
         else if(input == "algo")
         {
-            sinput>>algo_;
+            int type;
+            sinput>>type;
             sinput>>temp;
+            chosen_algo_ = AlgorithmType(type);
+        }
+        else if(input == "world")
+        {
+            int type;
+            sinput>>type;
+            sinput>>temp;
+            chosen_world_ = WorldType(type);
         }
         else if(input == "seed")
         {
@@ -228,6 +241,54 @@ void PlannerModule::parseInput(std::istream& sinput)
         if (ctr>10) break;
     }
     srand(seed);
+    setPlanner();
+    setWorld();
+}
+
+void PlannerModule::setPlanner()
+{
+    switch(chosen_algo_)
+    {
+        case(AlgorithmType::RRT):
+            std::cout<<"RRT"<<std::endl;
+            active_planner_ = &rrt_planner_;
+            break;
+        case(AlgorithmType::RRTconnect): 
+            std::cout<<"RRT connect"<<std::endl;
+            active_planner_ = &connect_planner_;
+            break;
+        case(AlgorithmType::RRTstar): 
+            std::cout<<"RRT star"<<std::endl;
+            active_planner_ = &star_planner_;
+            break;
+        case(AlgorithmType::None):
+        default:
+            std::cout<<"Wrong algorithm asked!!!"<<std::endl;
+            active_planner_ = &rrt_planner_;
+    }
+}
+
+void PlannerModule::setWorld()
+{
+    switch(chosen_world_)
+    {
+        case(WorldType::Euclidean):
+            std::cout<<"Euclidean World"<<std::endl;
+            active_world_ = &world_;
+            break;
+        case(WorldType::FlatPotential): 
+            std::cout<<"Flat world with potentials"<<std::endl;
+            active_world_ = &world_potential_;
+            break;
+        case(WorldType::HighDOFPotential): 
+            std::cout<<"Arm planningwith potentials"<<std::endl;
+            active_world_ = &world_high_dof_;
+            break;
+        case(WorldType::Undefined):
+        default:
+            std::cout<<"Wrong world selected!!!"<<std::endl;
+            active_world_ = &world_;
+    }
 }
 
 #endif

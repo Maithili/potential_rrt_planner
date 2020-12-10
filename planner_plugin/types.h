@@ -24,7 +24,7 @@ extern "C" {
 
 #define HUGE_VAL 1000.0
 
-static constexpr bool silent = false;
+static constexpr bool silent = true;
 
 #ifdef PLANAR
 
