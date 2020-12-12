@@ -22,11 +22,21 @@ extern "C" {
 #define PLANAR
 // #define ARM
 
+// #define SMALLWORLD
+#define LARGEWORLD
+
 #define HUGE_VAL 1000.0
 
 static constexpr bool silent = true;
 
+
 #ifdef PLANAR
+#ifdef SMALLWORLD
+
+static constexpr float x_min = -5;
+static constexpr float y_min = -5;
+static constexpr float x_max = 5;
+static constexpr float y_max = 5;
 
 static constexpr float step_size = 0.2;
 static constexpr float inner_step_size = step_size;
@@ -45,6 +55,32 @@ namespace potential_params
 }
 static constexpr int config_dim = 3;
 static constexpr int space_dim = 2;
+#endif
+
+#ifdef LARGEWORLD
+static constexpr float x_min = -50;
+static constexpr float y_min = -50;
+static constexpr float x_max = 50;
+static constexpr float y_max = 50;
+
+static constexpr float step_size = 1.0;
+static constexpr float inner_step_size = step_size;
+static constexpr int num_baby_steps = 5;
+static constexpr float outer_step_size = step_size*static_cast<float>(num_baby_steps);
+static constexpr float node_distance_tolerance = step_size * 1.5;
+namespace potential_params
+{
+    const float max_dist                = 25.F;
+    const float min_dist                = 2.F;
+    const float potential_power         = 2.F;
+    const float max_potential_gradient  = 50.F;
+    const float potential_gradient_goal = 50.F;
+    const float potential_gradient_rand = 50.F;
+    float goal_potential_gradient       = potential_gradient_goal;
+}
+static constexpr int config_dim = 3;
+static constexpr int space_dim = 2;
+#endif
 #endif
 
 #ifdef ARM

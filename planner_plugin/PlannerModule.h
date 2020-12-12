@@ -132,10 +132,12 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
     std::vector<double> upper_limit;
     
     #ifdef PLANAR
-    lower_limit.push_back(-5.0);
-    lower_limit.push_back(-5.0);
-    upper_limit.push_back(5.0);
-    upper_limit.push_back(5.0);
+    lower_limit.push_back(x_min);
+    lower_limit.push_back(y_min);
+    lower_limit.push_back(-3.14);
+    upper_limit.push_back(x_max);
+    upper_limit.push_back(y_max);
+    upper_limit.push_back(3.14);
     #endif
 
     std::vector<OpenRAVE::RobotBasePtr> robots;
@@ -188,9 +190,10 @@ bool PlannerModule::runCommand(std::ostream& sout, std::istream& sinput)
     viz_objects_permanent.clear();
 
     if(active_planner_->plan(max_iterations))
+    {
         path_ = active_planner_->getPath();
-
-    moveRobot(path_, env_, sout);
+        moveRobot(path_, env_, sout);
+    }
 
     return true;
 }

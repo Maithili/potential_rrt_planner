@@ -1,0 +1,56 @@
+<KinBody name="obstacles">
+    <RotationAxis>0 0 0 0</RotationAxis>
+    <Translation>0 0 0.2</Translation>
+    <Body name="1" type="static">
+        <Geom type="box">
+            <Extents> 2.5 35.0 2.5</Extents>
+            <Translation> -35.0 0.0 0 </Translation>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+    <RotationAxis>0 0 0 0</RotationAxis>
+    <Translation>0 0 0.2</Translation>
+    <Body name="2" type="static">
+        <Geom type="box">
+            <Extents> 17.5 2.5 2.5</Extents>
+            <Translation> -20.0 35.0 0 </Translation>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+    <RotationAxis>0 0 0 0</RotationAxis>
+    <Translation>0 0 0.2</Translation>
+    <Body name="3" type="static">
+        <Geom type="box">
+            <Extents> 2.5 35.0 2.5</Extents>
+            <Translation> -5.0 0.0 0 </Translation>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+    <RotationAxis>0 0 0 0</RotationAxis>
+    <Translation>0 0 0.2</Translation>
+    <Body name="4" type="static">
+        <Geom type="box">
+            <Extents> 17.5 2.5 2.5</Extents>
+            <Translation> 12.5 -32.5 0 </Translation>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+    <RotationAxis>0 0 0 0</RotationAxis>
+    <Translation>0 0 0.2</Translation>
+    <Body name="5" type="static">
+        <Geom type="box">
+            <Extents> 2.5 35.0 2.5</Extents>
+            <Translation> 30.0 0.0 0 </Translation>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+    <RotationAxis>0 0 0 0</RotationAxis>
+    <Translation>0 0 0.2</Translation>
+    <Body name="6" type="static">
+        <Geom type="box">
+            <Extents> 12.5 2.5 2.5</Extents>
+            <Translation> 20.0 35.0 0 </Translation>
+            <diffuseColor>1 1 1</diffuseColor>
+        </Geom>
+    </Body>
+</KinBody>

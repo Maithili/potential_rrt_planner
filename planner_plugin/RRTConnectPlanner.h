@@ -48,15 +48,17 @@ bool RRTConnectPlanner::plan(int max_iterations)
         if (!silent && iteration%20 == 0) drawTree();
         Config random_config = world_ptr_->getRandomConfigNotInCollision();
         goal_node_[1-conn_tree_] = extendTo(random_config, 1-conn_tree_);
-        if (goal_node_[1-conn_tree_]==nullptr) continue;
-        World::ExtendResult connect_result = connectTo(goal_node_[1-conn_tree_]->getConfiguration(), conn_tree_);
-        if (connect_result == World::ExtendResult::ReachedConnectGoal)
+        if (goal_node_[1-conn_tree_] != nullptr)
         {
-            if (!silent) drawTree();
-            std::cout<<"Nodes matched at : "<<goal_node_[0]->getConfiguration().transpose()
-                                   <<" and "<<goal_node_[1]->getConfiguration().transpose()<<std::endl;
-            std::cout<<"Iterations : "<<iteration<<std::endl;
-            return true;
+            World::ExtendResult connect_result = connectTo(goal_node_[1-conn_tree_]->getConfiguration(), conn_tree_);
+            if (connect_result == World::ExtendResult::ReachedConnectGoal)
+            {
+                if (!silent) drawTree();
+                std::cout<<"Nodes matched at : "<<goal_node_[0]->getConfiguration().transpose()
+                                    <<" and "<<goal_node_[1]->getConfiguration().transpose()<<std::endl;
+                std::cout<<"Iterations : "<<iteration<<std::endl;
+                return true;
+            }
         }
         conn_tree_ = 1 - conn_tree_;
     }
@@ -106,6 +108,7 @@ World::ExtendResult RRTConnectPlanner::connectTo(Config connect_goal, int tree_i
         {
             closest_node = tree->addChildNode(closest_node, steps, distance);
         }
+        --steps_allowed;
     }
     while (result == World::ExtendResult::Extended && steps_allowed > 0);
 

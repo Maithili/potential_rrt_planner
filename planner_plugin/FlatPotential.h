@@ -89,8 +89,8 @@ Location FlatPotential::getPotentialGradientAt(Location x)
             gradient = geom_grad;
     }
 
-    return sum_gradient;
-    // return gradient;
+    // return sum_gradient;
+    return gradient;
 }
 
 #endif  // FLAT_POTENTIAL_H

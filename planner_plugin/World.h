@@ -40,8 +40,8 @@ public:
         std::vector<double> config_vector(config.data(), config.data()+config.rows());
         if (config_dim < 3) config_vector.push_back(0.0);
         robot->SetActiveDOFValues(config_vector);
-        return (   env_->CheckCollision(robot)
-                || robot->CheckSelfCollision());
+        return (env_->CheckCollision(robot)
+                 || robot->CheckSelfCollision());
     }
 
     Config getRandomConfig()
@@ -102,7 +102,7 @@ public:
         RAVELOG_INFO("Constructed euclidean world");
     }
 
-    virtual ExtendResult stepTowards(Config from, Config towards, std::vector<Config>& steps, float& distance_out, bool unlimited_steps = false) override
+    ExtendResult stepTowards(Config from, Config towards, std::vector<Config>& steps, float& distance_out, bool unlimited_steps = false) override
     {
         steps.clear();
         distance_out = 0;
@@ -140,6 +140,8 @@ public:
         return ExtendResult::Extended;
     }
 
+protected:
+
     virtual bool smallStep(Config from, Config towards, Config& step_out)
     {
         step_out = from + (towards - from).normalized() * step_size;
@@ -151,12 +153,12 @@ class EuclideanWorldWithPotential : public EuclideanWorld
 {
 public:
     EuclideanWorldWithPotential(OpenRAVE::EnvironmentBasePtr& env): 
-    EuclideanWorld(env), potential_(env, 12.0, 12.0, 0.05)
+    EuclideanWorld(env), potential_(env, (x_max-x_min)*1.01, (y_max-y_min)*1.01, step_size/2)
     {
         RAVELOG_INFO("Constructed euclidean world with potentials");
     };
 
-private:
+protected:
 
     bool smallStep(Config from, Config towards, Config& step_out) override
     {
@@ -166,7 +168,7 @@ private:
         double norm = (goal_gradient + obstacle_gradient).norm();
         Config step = (goal_gradient + obstacle_gradient).normalized() * inner_step_size;
         step_out = (from + step);
-        return norm > 1e-2;
+        return norm > potential_params::potential_gradient_goal*0.03; //2-2cos(10deg)
     }
 
     Config getObstacleGradient(Config q)

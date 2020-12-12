@@ -7,7 +7,7 @@ class RRTPlanner : public Planner
 {
 public:
 
-    RRTPlanner(): goal_bias_{0.1}, goal_node_{nullptr}
+    RRTPlanner(): goal_bias_{0.01}, goal_node_{nullptr}
     {}
 
     virtual bool plan(int max_iterations) override;
