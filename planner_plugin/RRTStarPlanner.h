@@ -7,7 +7,7 @@ class RRTStarPlanner : public RRTPlanner
 {
 public:
 
-    RRTStarPlanner():gamma_{(step_size*10)}, rewire_radius_{gamma_}, num_vertices_{1}
+    RRTStarPlanner():gamma_{(step_size*15)}, rewire_radius_{gamma_}, num_vertices_{1}
     {}
 
 private:

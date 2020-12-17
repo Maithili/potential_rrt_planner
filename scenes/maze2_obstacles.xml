@@ -3,7 +3,7 @@
     <Translation>0 0 0.2</Translation>
     <Body name="1" type="static">
         <Geom type="box">
-            <Extents> 1.0 25.0 2.5</Extents>
+            <Extents> 1.0 25.0 0.25</Extents>
             <Translation> -25.0 0.0 0 </Translation>
             <diffuseColor>1 1 1</diffuseColor>
         </Geom>
@@ -12,7 +12,7 @@
     <Translation>0 0 0.2</Translation>
     <Body name="2" type="static">
         <Geom type="box">
-            <Extents> 13.5 1.0 2.5</Extents>
+            <Extents> 13.5 1.0 0.25</Extents>
             <Translation> -12.5 0.0 0 </Translation>
             <diffuseColor>1 1 1</diffuseColor>
         </Geom>
@@ -21,7 +21,7 @@
     <Translation>0 0 0.2</Translation>
     <Body name="3" type="static">
         <Geom type="box">
-            <Extents> 1.0 25.0 2.5</Extents>
+            <Extents> 1.0 25.0 0.25</Extents>
             <Translation> 0.0 -25.0 0 </Translation>
             <diffuseColor>1 1 1</diffuseColor>
         </Geom>
@@ -30,7 +30,7 @@
     <Translation>0 0 0.2</Translation>
     <Body name="4" type="static">
         <Geom type="box">
-            <Extents> 12.5 1.0 2.5</Extents>
+            <Extents> 12.5 1.0 0.25</Extents>
             <Translation> 12.5 25.5 0 </Translation>
             <diffuseColor>1 1 1</diffuseColor>
         </Geom>
@@ -39,7 +39,7 @@
     <Translation>0 0 0.2</Translation>
     <Body name="5" type="static">
         <Geom type="box">
-            <Extents> 1.0 37.5 2.5</Extents>
+            <Extents> 1.0 37.5 0.25</Extents>
             <Translation> 25.0 12.5 0 </Translation>
             <diffuseColor>1 1 1</diffuseColor>
         </Geom>

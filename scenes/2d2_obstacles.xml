@@ -3,7 +3,7 @@
     <Translation>0 0 0.2</Translation>
     <Body name=" Lleft " type="static">
         <Geom type="box">
-            <Extents> 5.0 5.0 2.5</Extents>
+            <Extents> 5.0 5.0 0.25</Extents>
             <Translation> -30.0 -5.0 0 </Translation>
             <diffuseColor>1 1 1</diffuseColor>
         </Geom>
@@ -12,7 +12,7 @@
     <Translation>0 0 0.2</Translation>
     <Body name=" Lright " type="static">
         <Geom type="box">
-            <Extents> 5.0 5.0 2.5</Extents>
+            <Extents> 5.0 5.0 0.25</Extents>
             <Translation> -10.0 -5.0 0 </Translation>
             <diffuseColor>1 1 1</diffuseColor>
         </Geom>
@@ -21,7 +21,7 @@
     <Translation>0 0 0.2</Translation>
     <Body name=" Ltop " type="static">
         <Geom type="box">
-            <Extents> 5.0 5.0 2.5</Extents>
+            <Extents> 5.0 5.0 0.25</Extents>
             <Translation> -20.0 15.0 0 </Translation>
             <diffuseColor>1 1 1</diffuseColor>
         </Geom>
@@ -30,7 +30,7 @@
     <Translation>0 0 0.2</Translation>
     <Body name=" Lbottom " type="static">
         <Geom type="box">
-            <Extents> 5.0 5.0 2.5</Extents>
+            <Extents> 5.0 5.0 0.25</Extents>
             <Translation> -20.0 -25.0 0 </Translation>
             <diffuseColor>1 1 1</diffuseColor>
         </Geom>
@@ -39,7 +39,7 @@
     <Translation>0 0 0.2</Translation>
     <Body name=" Rleft " type="static">
         <Geom type="box">
-            <Extents> 5.0 5.0 2.5</Extents>
+            <Extents> 5.0 5.0 0.25</Extents>
             <Translation> 20.0 -5.0 0 </Translation>
             <diffuseColor>1 1 1</diffuseColor>
         </Geom>
@@ -48,7 +48,7 @@
     <Translation>0 0 0.2</Translation>
     <Body name=" Rright " type="static">
         <Geom type="box">
-            <Extents> 5.0 5.0 2.5</Extents>
+            <Extents> 5.0 5.0 0.25</Extents>
             <Translation> 40.0 -5.0 0 </Translation>
             <diffuseColor>1 1 1</diffuseColor>
         </Geom>
@@ -57,7 +57,7 @@
     <Translation>0 0 0.2</Translation>
     <Body name=" Rtop " type="static">
         <Geom type="box">
-            <Extents> 5.0 5.0 2.5</Extents>
+            <Extents> 5.0 5.0 0.25</Extents>
             <Translation> 30.0 15.0 0 </Translation>
             <diffuseColor>1 1 1</diffuseColor>
         </Geom>
@@ -66,7 +66,7 @@
     <Translation>0 0 0.2</Translation>
     <Body name=" Rbottom " type="static">
         <Geom type="box">
-            <Extents> 5.0 5.0 2.5</Extents>
+            <Extents> 5.0 5.0 0.25</Extents>
             <Translation> 30.0 -25.0 0 </Translation>
             <diffuseColor>1 1 1</diffuseColor>
         </Geom>

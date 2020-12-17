@@ -8,21 +8,20 @@ import scipy
 import random
 from math import sqrt
 
-# WORLD = "maze1"
-# START = [-20, 20, 0]
-# GOAL = [12.5, -20, 0]
+START = {}
+GOAL = {}
 
-WORLD = "maze2"
-START = [-40, -40, 0]
-GOAL = [40, 40, 0]
+START["maze1"] = [-20, 20, 0]
+GOAL["maze1"] = [12.5, -20, 0]
 
-# WORLD = "2d1"
-# START = [-10, -10, 0]
-# GOAL = [20, -10, 0]
+START["maze2"] = [-40, -40, 0]
+GOAL["maze2"] = [40, 40, 0]
 
-# WORLD = "2d2"
-# START = [-20, -5, 0]
-# GOAL = [30, -5, 0]
+START["2d1"] = [-10, -10, 0]
+GOAL["2d1"] = [20, -10, 0]
+
+START["2d2"] = [-20, -5, 0]
+GOAL["2d2"] = [30, -5, 0]
 
 interactive = False
 
@@ -69,13 +68,13 @@ def setenv(e):
     r = e.GetRobots()[0]
     tuckarms(e,r)
     r.SetActiveDOFs([],DOFAffine.X|DOFAffine.Y|DOFAffine.RotationAxis,[0,0,1])
-    q_goal = GOAL
+    q_goal = GOAL[WORLD]
     r.GetController().SetDesired(r.GetDOFValues())
     e.UpdatePublishedBodies()
     return str(q_goal)[1:-1]
 
 def setrobot(r):
-    r.SetActiveDOFValues(START)
+    r.SetActiveDOFValues(START[WORLD])
     r.GetController().SetDesired(r.GetDOFValues())
     time.sleep(0.1)
 
@@ -103,8 +102,14 @@ def run():
     collisionChecker = RaveCreateCollisionChecker(env,'ode')
     env.SetCollisionChecker(collisionChecker)
     env.Reset()   
-    goalstring = setenv(env)  
-    
+    goalstring = setenv(env)
+
+    env.GetViewer().SetCamera([
+        [1,  0,  0,  2.93],
+        [0, -1,  0,  0.04],
+        [0,  0, -1,  124.65],
+        [0,  0,  0,  1]])
+
     RaveInitialize()
     RaveLoadPlugin('planner_plugin/build/planner_plugin')
     results = {}
@@ -162,6 +167,10 @@ def serialize(results):
     return s
 
 if __name__ == "__main__":
+    global WORLD
+    WORLD = "2d1"
+    if(len(sys.argv) > 1): WORLD = sys.argv[1]
+    if(len(sys.argv) > 2): print("Only one argument can be given to specify world [default = 2d1]!!!") 
     res = run()
     if res and not interactive:
         f = open("results_"+WORLD+".txt", "a")

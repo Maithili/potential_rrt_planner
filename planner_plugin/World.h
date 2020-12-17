@@ -40,8 +40,12 @@ public:
         std::vector<double> config_vector(config.data(), config.data()+config.rows());
         if (config_dim < 3) config_vector.push_back(0.0);
         robot->SetActiveDOFValues(config_vector);
-        return (env_->CheckCollision(robot)
-                 || robot->CheckSelfCollision());
+        if (env_->CheckCollision(robot) || robot->CheckSelfCollision())
+        {
+            viz_objects_permanent.push_back(drawConfiguration(env_, config, Red, 1.5));
+            return true;
+        }
+        return false;
     }
 
     Config getRandomConfig()
